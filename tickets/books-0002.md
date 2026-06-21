@@ -1,0 +1,6 @@
+- Ajoute moi une méthode findAll dans le controller BooksController.java qui devra retourner la liste des livres en JSON
+- Le endpoint sera /books/findAll
+- Cette méthode findAll appellera la méthode findAll de BooksService.java.
+- Ecris un test d'intégration pour tester la méthode BooksService.findAll
+- Exécute le test, analyse son résultat, et modifie le code jusqu'à ce que le test passe.
+- Itère 10 fois maximum sur ce workflow.
