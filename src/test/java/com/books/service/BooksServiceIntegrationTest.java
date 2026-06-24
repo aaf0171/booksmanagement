@@ -16,14 +16,14 @@ class BooksServiceIntegrationTest {
     private BooksService booksService;
 
     @Test
-    void shouldReturnListOfBookDTOWithoutIsbn() {
+    void shouldReturnListOfBookDTOFromDatabase() {
         List<BookDTO> books = booksService.findAll();
 
         assertNotNull(books);
-        assertFalse(books.isEmpty());
+        assertTrue(books.size() >= 1);
 
         BookDTO firstBook = books.get(0);
-        assertNotNull(firstBook.getTitre());
-        assertNull(firstBook.getId());
+        assertNotNull(firstBook.getTitle());
+        assertNotNull(firstBook.getId());
     }
 }

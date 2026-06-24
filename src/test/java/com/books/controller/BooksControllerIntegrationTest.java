@@ -26,6 +26,6 @@ class BooksControllerIntegrationTest {
         assertNotNull(response.getBody());
 
         BookDTO firstBook = response.getBody()[0];
-        assertNotNull(firstBook.getTitre());
+        assertNotNull(firstBook.getTitle());
     }
 }

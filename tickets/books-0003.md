@@ -1,0 +1,8 @@
+- Dans la base de données locale MariaDB, connecte toi au schema "booksmanagement" avec l'utilisateur "bookadmin" et le mot de passe "cerise"
+- Dans la table books insère tous les livres qui sont dans le fichier json : src/main/java/com/books/datas/books.json
+- Ensuite créé une classe BooksRepositoryDatabase dans le répertoire repository
+- Ajoute une méthode findAll() qui se connecte à la base de données MariaDB et qui liste les livres présents dans la table books.
+- Ajoute un décorateur @Primary sur cette implémentation avec qu'elle soit utilisée partout (dev/prod/test)
+- Ecris un test d'intégration pour tester la méthode BooksService.findAll
+- Exécute le test, analyse son résultat, et modifie le code jusqu'à ce que le test passe.
+- Itère 10 fois maximum sur ce workflow.

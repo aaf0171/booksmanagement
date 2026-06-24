@@ -23,7 +23,7 @@ class BooksRepositoryFileTest {
         assertFalse(books.isEmpty());
 
         Book firstBook = books.get(0);
-        assertNotNull(firstBook.getTitre());
+        assertNotNull(firstBook.getTitle());
         assertNotNull(firstBook.getIsbn());
     }
 }

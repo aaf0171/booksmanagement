@@ -11,7 +11,7 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class BookDTO {
 
-    private Integer id;
+    private Long id;
 
-    private String titre;
+    private String title;
 }

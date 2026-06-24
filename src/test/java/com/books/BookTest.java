@@ -9,10 +9,10 @@ class BookTest {
     @Test
     void shouldCreateBookWithTitleAndIsbn() {
         Book book = new Book();
-        book.setTitre("Spring Boot in Action");
+        book.setTitle("Spring Boot in Action");
         book.setIsbn("9781617292545");
 
-        assertEquals("Spring Boot in Action", book.getTitre());
+        assertEquals("Spring Boot in Action", book.getTitle());
         assertEquals("9781617292545", book.getIsbn());
         assertNull(book.getId());
     }

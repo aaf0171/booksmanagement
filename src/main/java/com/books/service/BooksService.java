@@ -17,7 +17,7 @@ public class BooksService {
     public List<BookDTO> findAll() {
         List<Book> books = bookRepository.findAll();
         return books.stream()
-                .map(book -> new BookDTO(book.getId(), book.getTitre()))
+                .map(book -> new BookDTO(book.getId(), book.getTitle()))
                 .toList();
     }
 }
