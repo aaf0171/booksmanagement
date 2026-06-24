@@ -1,0 +1,21 @@
+version: '3.8'
+services:
+  mariadb:
+    image: mariadb:12.3.2-noble
+    environment:
+      MARIADB_ROOT_PASSWORD: "35FC1c0!5f7ca31CE91404aa#5a541d204"
+    ports:
+      - "3306:3306"  # ← Port mappé pour ton client local (optionnel)
+    volumes:
+      - ./database:/var/lib/mysql
+    # Pas besoin d'exposer le port si seul ton API y accède
+
+  # api:
+  #   image: ton_api
+  #   depends_on:
+  #     - mariadb
+  #   environment:
+  #     DB_HOST: mariadb       # ← Nom du service (pas localhost !)
+  #     DB_PORT: 3306          # ← Port interne (3306 par défaut)
+  #     DB_USER: root
+  #     DB_PASSWORD: mon_mot_de_passe
