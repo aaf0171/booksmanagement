@@ -1,0 +1,10 @@
+- Créé une entité Loans.java
+- Cette entité doit représenter exactement la structure de la table loans présente de la base de données schema (booksmanagement)
+- Ensuite créé une classe LoansRepositoryDatabase dans le répertoire repository
+- Ajoute une méthode findAllActiveLoans() qui se connecte à la base de données MariaDB et qui liste les emprunts présents dans la table loans avec la requete suivante SQL : SELECT l FROM Loan l WHERE l.returnDate IS NULL
+- Ajoute un décorateur @Primary sur cette implémentation avec qu'elle soit utilisée partout (dev/prod/test)
+- Ecris un test d'intégration pour tester la méthode LoansRepositoryDatabaseTest.findAllActiveLoans
+- Exécute le test, analyse son résultat, et modifie le code jusqu'à ce que le test passe.
+- Ecris un test d'intégration pour tester la méthode LoansService.findAllActiveLoans
+- Exécute le test, analyse son résultat, et modifie le code jusqu'à ce que le test passe.
+- Itère 10 fois maximum sur ce workflow.
