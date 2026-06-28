@@ -14,7 +14,7 @@ import java.time.LocalDate;
 @Table(name = "loans")
 @Getter
 @Setter
-public class Loans {
+public class Loan {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -33,9 +33,9 @@ public class Loans {
 
     private String status;
 
-    public Loans() {}
+    public Loan() {}
 
-    public Loans(Long bookId, Long borrowerId, LocalDate loanDate, Integer loanPeriodDays, LocalDate dueDate, LocalDate returnDate, String status) {
+    public Loan(Long bookId, Long borrowerId, LocalDate loanDate, Integer loanPeriodDays, LocalDate dueDate, LocalDate returnDate, String status) {
         this.bookId = bookId;
         this.borrowerId = borrowerId;
         this.loanDate = loanDate;

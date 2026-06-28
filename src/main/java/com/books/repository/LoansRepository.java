@@ -1,8 +1,8 @@
 package com.books.repository;
 
-import com.books.model.Loans;
+import com.books.dto.ActiveLoanDTO;
 import java.util.List;
 
 public interface LoansRepository {
-    List<Loans> findAllActiveLoans();
+    List<ActiveLoanDTO> findAllActiveLoans();
 }

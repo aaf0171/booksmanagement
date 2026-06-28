@@ -1,14 +1,11 @@
 package com.books.controller;
 
-import com.books.model.Loans;
+import com.books.model.Loan;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
-
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -22,7 +19,7 @@ class LoansControllerIntegrationTest {
     void shouldReturnActiveLoans() {
         RestTemplate template = new RestTemplate();
         String url = "http://localhost:" + port + "/loans/findAllActiveLoans";
-        ResponseEntity<Loans[]> response = template.getForEntity(url, Loans[].class);
+        ResponseEntity<Loan[]> response = template.getForEntity(url, Loan[].class);
 
         assertNotNull(response);
         assertNotNull(response.getBody());

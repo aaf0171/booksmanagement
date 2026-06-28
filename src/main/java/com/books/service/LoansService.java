@@ -1,7 +1,7 @@
 package com.books.service;
 
-import com.books.model.Loans;
-import com.books.repository.LoansRepository;
+import com.books.dto.ActiveLoanDTO;
+import com.books.repository.LoansRepositoryDatabase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -11,9 +11,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class LoansService {
 
-    private final LoansRepository loansRepository;
+    private final LoansRepositoryDatabase loansRepository;
 
-    public List<Loans> findAllActiveLoans() {
-        return loansRepository.findAllActiveLoans();
+    public List<ActiveLoanDTO> findAllActiveLoans() {
+        return loansRepository.findActiveLoans();
     }
 }
