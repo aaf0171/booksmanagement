@@ -1,8 +1,0 @@
-- Ensuite créé une classe BorrowersRepositoryDatabase dans le répertoire repository
-- Ajoute une méthode findAll() qui se connecte à la base de données MariaDB et qui liste les emprunteurs présents dans la table borrowers.
-- Ajoute un décorateur @Primary sur cette implémentation avec qu'elle soit utilisée partout (dev/prod/test)
-- Ecris un test d'intégration pour tester la méthode BorrowersRepositoryDatabaseTest.findAll
-- Exécute le test, analyse son résultat, et modifie le code jusqu'à ce que le test passe.
-- Ecris un test d'intégration pour tester la méthode BorrowersService.findAll
-- Exécute le test, analyse son résultat, et modifie le code jusqu'à ce que le test passe.
-- Itère 10 fois maximum sur ce workflow.

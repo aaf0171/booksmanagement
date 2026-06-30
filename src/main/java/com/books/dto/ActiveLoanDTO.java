@@ -1,14 +1,13 @@
 package com.books.dto;
-import java.time.LocalDate;
+
+import java.time.LocalDateTime;
 
 public interface ActiveLoanDTO {
-
     Long getId();
-
-    String getBookTitle();
-
+    Long getItemId();
+    Long getBorrowerId();
     String getBorrowerName();
-
-    LocalDate getDueDate();
-
+    String getDocumentTitle();
+    LocalDateTime getLoanDate();
+    LocalDateTime getDueDate();
 }

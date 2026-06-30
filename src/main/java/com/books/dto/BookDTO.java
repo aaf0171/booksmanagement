@@ -1,17 +1,19 @@
 package com.books.dto;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
 public class BookDTO {
+    private final Long id;
+    private final String title;
 
-    private Long id;
+    public BookDTO(Long id, String title) {
+        this.id = id;
+        this.title = title;
+    }
 
-    private String title;
+    public Long getId() {
+        return id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
 }

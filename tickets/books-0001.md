@@ -1,6 +1,0 @@
-- Génère moi une classe BookDTO.java qui n'expose pas l'ISBN.
-- Génére moi un service BooksService qui retourne une liste de livre de type BookDTO via une méthode findAll.
-- BooksService récupèrera les données depuis BookRepositoryFile.java
-- Ecris un test d'intégration pour tester la méthode BooksService.findAll
-- Exécute le test, analyse son résultat, et modifie le code jusqu'à ce que le test passe.
-- Itère 10 fois maximum sur ce workflow.

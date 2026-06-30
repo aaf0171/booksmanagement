@@ -1,18 +1,17 @@
 package com.books.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "books")
-@Getter
-@Setter
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Book {
 
     @Id
@@ -22,12 +21,4 @@ public class Book {
     private String title;
 
     private String isbn;
-
-    public Book() {
-    }
-
-    public Book(String title, String isbn) {
-        this.title = title;
-        this.isbn = isbn;
-    }
 }

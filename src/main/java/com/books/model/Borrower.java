@@ -1,33 +1,28 @@
 package com.books.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "borrowers")
-@Getter
-@Setter
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Borrower {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;
+    private String firstname;
 
-    private String surname;
+    private String lastname;
 
-    public Borrower() {
-    }
+    private String email;
 
-    public Borrower(String name, String surname) {
-        this.name = name;
-        this.surname = surname;
-    }
+    private java.time.LocalDateTime created_at;
 }

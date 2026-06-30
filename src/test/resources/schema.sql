@@ -20,3 +20,40 @@ CREATE TABLE IF NOT EXISTS loans (
     return_date DATE,
     status VARCHAR(20)
 );
+
+CREATE TABLE IF NOT EXISTS documents (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255),
+    subtitle VARCHAR(255),
+    document_type VARCHAR(20),
+    isbn VARCHAR(20),
+    publisher VARCHAR(255),
+    publication_year INT,
+    language VARCHAR(50),
+    description TEXT,
+    cover_url VARCHAR(500),
+    created_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_documents_search ON documents(title, subtitle, description, publisher);
+
+CREATE TABLE IF NOT EXISTS authors (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    firstname VARCHAR(100),
+    lastname VARCHAR(100)
+);
+
+CREATE TABLE IF NOT EXISTS document_authors (
+    document_id BIGINT NOT NULL,
+    author_id BIGINT NOT NULL,
+    PRIMARY KEY (document_id, author_id)
+);
+
+CREATE TABLE IF NOT EXISTS items (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    document_id BIGINT NOT NULL,
+    barcode VARCHAR(50) UNIQUE,
+    acquisition_date DATE,
+    location VARCHAR(100),
+    status VARCHAR(20)
+);

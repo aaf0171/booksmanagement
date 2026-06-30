@@ -1,10 +1,9 @@
 package com.books.repository;
 
 import com.books.model.Book;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
-import java.util.List;
-
-public interface BookRepository {
-
-    List<Book> findAll();
+@Repository
+public interface BookRepository extends JpaRepository<Book, Long> {
 }
