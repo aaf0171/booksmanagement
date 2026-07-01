@@ -9,6 +9,10 @@ public interface ItemsRepository extends JpaRepository<Item, Long> {
 
     boolean existsByDocumentIdAndBarcode(Long documentId, String barcode);
 
+    boolean existsByBarcode(String barcode);
+
+    java.util.Optional<Item> findByBarcode(String barcode);
+
     long countByDocumentId(Long documentId);
 
     void deleteByDocumentId(Long documentId);

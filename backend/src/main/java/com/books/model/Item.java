@@ -14,6 +14,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class Item {
 
+    public enum PhysicalStatus {
+        CLEAN, LOST, DAMAGED, REPAIR
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -24,4 +28,13 @@ public class Item {
 
     @Column(nullable = false, unique = true)
     private String barcode;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private PhysicalStatus physicalStatus = PhysicalStatus.CLEAN;
+
+    private String location;
+
+    private java.time.LocalDate acquisitionDate;
 }

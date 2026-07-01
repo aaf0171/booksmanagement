@@ -11,9 +11,8 @@ import java.time.LocalDate;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ItemDTO {
+public class AddItemDTO {
 
-    private Long id;
     private String barcode;
     private String location;
     private LocalDate acquisitionDate;

@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS items (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     document_id BIGINT NOT NULL,
     barcode VARCHAR(50) UNIQUE,
+    `status` VARCHAR(20),
     acquisition_date DATE,
-    location VARCHAR(100),
-    status VARCHAR(20)
+    location VARCHAR(100)
 );
