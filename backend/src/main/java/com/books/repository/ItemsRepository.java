@@ -7,5 +7,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ItemsRepository extends JpaRepository<Item, Long> {
 
-    boolean existsByDocumentIdAndLabel(Long documentId, String label);
+    boolean existsByDocumentIdAndBarcode(Long documentId, String barcode);
 }

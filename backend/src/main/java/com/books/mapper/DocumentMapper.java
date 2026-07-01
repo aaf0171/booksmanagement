@@ -60,7 +60,7 @@ public class DocumentMapper {
         }
         return command.getItems().stream()
                 .map(item -> Item.builder()
-                        .label(item.getLabel())
+                        .barcode(item.getBarcode())
                         .document(document)
                         .build())
                 .toList();
@@ -91,7 +91,7 @@ public class DocumentMapper {
         }
         return ItemDTO.builder()
                 .id(item.getId())
-                .label(item.getLabel())
+                .barcode(item.getBarcode())
                 .build();
     }
 

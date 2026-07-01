@@ -46,7 +46,7 @@ class DocumentCommandControllerTest {
 
         DocumentWithItemsResponseDTO response = DocumentWithItemsResponseDTO.builder()
                 .document(documentDTO)
-                .items(new ItemDTO[]{ItemDTO.builder().id(1L).label("Copy 1").build()})
+                .items(new ItemDTO[]{ItemDTO.builder().id(1L).barcode("Copy 1").build()})
                 .build();
 
         when(service.create(dto)).thenReturn(response);
@@ -57,7 +57,7 @@ class DocumentCommandControllerTest {
         assertNotNull(httpResponse.getBody());
         assertEquals("Test Book", httpResponse.getBody().getDocument().getTitle());
         assertEquals(1, httpResponse.getBody().getItems().length);
-        assertEquals("Copy 1", httpResponse.getBody().getItems()[0].getLabel());
+        assertEquals("Copy 1", httpResponse.getBody().getItems()[0].getBarcode());
         verify(service).create(dto);
     }
 
@@ -142,9 +142,9 @@ class DocumentCommandControllerTest {
         DocumentWithItemsResponseDTO response = DocumentWithItemsResponseDTO.builder()
                 .document(documentDTO)
                 .items(new ItemDTO[]{
-                        ItemDTO.builder().id(1L).label("Copy 1").build(),
-                        ItemDTO.builder().id(2L).label("Copy 2").build(),
-                        ItemDTO.builder().id(3L).label("Copy 3").build()
+                        ItemDTO.builder().id(1L).barcode("Copy 1").build(),
+                        ItemDTO.builder().id(2L).barcode("Copy 2").build(),
+                        ItemDTO.builder().id(3L).barcode("Copy 3").build()
                 })
                 .build();
 
@@ -155,7 +155,7 @@ class DocumentCommandControllerTest {
         assertEquals(201, httpResponse.getStatusCode().value());
         assertNotNull(httpResponse.getBody());
         assertEquals(3, httpResponse.getBody().getItems().length);
-        assertEquals("Copy 3", httpResponse.getBody().getItems()[2].getLabel());
+        assertEquals("Copy 3", httpResponse.getBody().getItems()[2].getBarcode());
         verify(service).create(dto);
     }
 }

@@ -12,5 +12,5 @@ import lombok.NoArgsConstructor;
 public class ItemDTO {
 
     private Long id;
-    private String label;
+    private String barcode;
 }

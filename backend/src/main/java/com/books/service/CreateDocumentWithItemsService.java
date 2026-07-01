@@ -37,7 +37,7 @@ public class CreateDocumentWithItemsService {
         List<Item> savedItems = new ArrayList<>();
         if (!items.isEmpty()) {
             for (Item item : items) {
-                if (itemsRepository.existsByDocumentIdAndLabel(savedDocument.getId(), item.getLabel())) {
+                if (itemsRepository.existsByDocumentIdAndBarcode(savedDocument.getId(), item.getBarcode())) {
                     continue;
                 }
                 savedItems.add(itemsRepository.save(item));

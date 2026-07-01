@@ -37,7 +37,7 @@ public class DocumentWithItems {
                 .description(dto.getDescription())
                 .coverUrl(dto.getCoverUrl())
                 .items(dto.getItems() != null ? dto.getItems().stream()
-                        .map(label -> Item.builder().label(label).build())
+                        .map(barcode -> Item.builder().barcode(barcode).build())
                         .toList()
                         : List.of())
                 .build();

@@ -92,12 +92,12 @@ class CreateDocumentWithItemsServiceTest {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        Item savedItem1 = Item.builder().id(1L).label("Copy 1").document(savedDocument).build();
-        Item savedItem2 = Item.builder().id(2L).label("Copy 2").document(savedDocument).build();
+        Item savedItem1 = Item.builder().id(1L).barcode("Copy 1").document(savedDocument).build();
+        Item savedItem2 = Item.builder().id(2L).barcode("Copy 2").document(savedDocument).build();
 
         when(documentsRepository.save(any(Document.class))).thenReturn(savedDocument);
-        when(itemsRepository.existsByDocumentIdAndLabel(1L, "Copy 1")).thenReturn(false);
-        when(itemsRepository.existsByDocumentIdAndLabel(1L, "Copy 2")).thenReturn(false);
+        when(itemsRepository.existsByDocumentIdAndBarcode(1L, "Copy 1")).thenReturn(false);
+        when(itemsRepository.existsByDocumentIdAndBarcode(1L, "Copy 2")).thenReturn(false);
         when(itemsRepository.save(any(Item.class)))
                 .thenReturn(savedItem1)
                 .thenReturn(savedItem2);
@@ -108,8 +108,8 @@ class CreateDocumentWithItemsServiceTest {
         assertNotNull(result.getDocument());
         assertEquals("Test Book", result.getDocument().getTitle());
         assertEquals(2, result.getItems().length);
-        assertEquals("Copy 1", result.getItems()[0].getLabel());
-        assertEquals("Copy 2", result.getItems()[1].getLabel());
+        assertEquals("Copy 1", result.getItems()[0].getBarcode());
+        assertEquals("Copy 2", result.getItems()[1].getBarcode());
         verify(documentsRepository).save(any(Document.class));
         verify(itemsRepository, times(2)).save(any(Item.class));
     }
@@ -130,10 +130,10 @@ class CreateDocumentWithItemsServiceTest {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        Item savedItem = Item.builder().id(1L).label("Copy 1").document(savedDocument).build();
+        Item savedItem = Item.builder().id(1L).barcode("Copy 1").document(savedDocument).build();
 
         when(documentsRepository.save(any(Document.class))).thenReturn(savedDocument);
-        when(itemsRepository.existsByDocumentIdAndLabel(1L, "Copy 1")).thenReturn(false);
+        when(itemsRepository.existsByDocumentIdAndBarcode(1L, "Copy 1")).thenReturn(false);
         when(itemsRepository.save(any(Item.class))).thenReturn(savedItem);
 
         DocumentWithItemsResponseDTO result = createDocumentWithItemsService.create(dto);
@@ -141,7 +141,7 @@ class CreateDocumentWithItemsServiceTest {
         assertNotNull(result);
         assertNotNull(result.getItems());
         assertEquals(1, result.getItems().length);
-        assertEquals("Copy 1", result.getItems()[0].getLabel());
+        assertEquals("Copy 1", result.getItems()[0].getBarcode());
         verify(itemsRepository).save(any(Item.class));
     }
 
@@ -176,7 +176,7 @@ class CreateDocumentWithItemsServiceTest {
                 .build();
 
         when(documentsRepository.save(any(Document.class))).thenReturn(savedDocument);
-        when(itemsRepository.existsByDocumentIdAndLabel(1L, "Copy 1")).thenReturn(true);
+        when(itemsRepository.existsByDocumentIdAndBarcode(1L, "Copy 1")).thenReturn(true);
 
         DocumentWithItemsResponseDTO result = createDocumentWithItemsService.create(dto);
 
