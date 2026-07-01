@@ -8,4 +8,8 @@ import org.springframework.stereotype.Repository;
 public interface ItemsRepository extends JpaRepository<Item, Long> {
 
     boolean existsByDocumentIdAndBarcode(Long documentId, String barcode);
+
+    long countByDocumentId(Long documentId);
+
+    void deleteByDocumentId(Long documentId);
 }

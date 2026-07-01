@@ -1,5 +1,7 @@
 package com.books.controller;
 
+import com.books.exception.DocumentInUseException;
+import com.books.exception.DocumentNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -35,5 +37,25 @@ public class GlobalExceptionHandler {
                 errors.put(e.getField(), e.getDefaultMessage()));
         body.put("errors", errors);
         return ResponseEntity.badRequest().body(body);
+    }
+
+    @ExceptionHandler(DocumentNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleDocumentNotFound(DocumentNotFoundException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("status", 404);
+        body.put("error", "Not Found");
+        body.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(DocumentInUseException.class)
+    public ResponseEntity<Map<String, Object>> handleDocumentInUse(DocumentInUseException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("status", 409);
+        body.put("error", "Conflict");
+        body.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 }

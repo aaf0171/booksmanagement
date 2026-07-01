@@ -266,4 +266,29 @@ class DocumentsRepositoryTest {
         assertNull(found.get().getDescription());
         assertNull(found.get().getCoverUrl());
     }
+
+    @Test
+    @DisplayName("should_delete_existing_document")
+    void shouldDeleteExistingDocument() {
+        Document doc = Document.builder()
+                .title("Document à supprimer")
+                .documentType(DocumentType.DVD)
+                .createdAt(LocalDateTime.now())
+                .build();
+        Document saved = documentsRepository.save(doc);
+        documentsRepository.flush();
+
+        int deleted = documentsRepository.deleteByIdCustom(saved.getId());
+
+        assertEquals(1, deleted);
+        assertFalse(documentsRepository.findById(saved.getId()).isPresent());
+    }
+
+    @Test
+    @DisplayName("should_return_zero_affected_rows_when_document_does_not_exist")
+    void shouldReturnZeroAffectedRowsWhenDocumentDoesNotExist() {
+        int deleted = documentsRepository.deleteByIdCustom(99999L);
+
+        assertEquals(0, deleted);
+    }
 }
