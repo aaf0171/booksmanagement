@@ -2,7 +2,9 @@ package com.books.repository;
 
 import com.books.dto.ActiveLoanDTO;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -26,4 +28,17 @@ public interface LoansRepositoryDatabase extends JpaRepository<com.books.model.L
         """,
         nativeQuery = true)
     List<ActiveLoanDTO> findActiveLoans();
+
+    @Query(value = """
+        SELECT COUNT(*)
+        FROM loans l
+        WHERE l.item_id = :itemId
+          AND l.return_date IS NULL
+        """,
+        nativeQuery = true)
+    Long countActiveLoansForItem(@Param("itemId") Long itemId);
+
+    @Modifying(clearAutomatically = true)
+    @Query(value = "DELETE FROM loans WHERE item_id = :itemId", nativeQuery = true)
+    void deleteLoansByItemId(@Param("itemId") Long itemId);
 }

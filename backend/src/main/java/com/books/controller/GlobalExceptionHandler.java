@@ -2,6 +2,8 @@ package com.books.controller;
 
 import com.books.exception.DocumentInUseException;
 import com.books.exception.DocumentNotFoundException;
+import com.books.exception.ItemInUseException;
+import com.books.exception.ItemNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -61,6 +63,26 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(com.books.exception.DuplicateBarcodeException.class)
     public ResponseEntity<Map<String, Object>> handleDuplicateBarcode(com.books.exception.DuplicateBarcodeException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("status", 409);
+        body.put("error", "Conflict");
+        body.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    @ExceptionHandler(ItemNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleItemNotFound(ItemNotFoundException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("status", 404);
+        body.put("error", "Not Found");
+        body.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(ItemInUseException.class)
+    public ResponseEntity<Map<String, Object>> handleItemInUse(ItemInUseException ex) {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now().toString());
         body.put("status", 409);
