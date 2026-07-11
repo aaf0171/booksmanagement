@@ -1,30 +1,22 @@
-package com.books.model;
+package com.books.dto;
 
-import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Entity
-@Table(name = "borrowers")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Borrower {
+public class CreateBorrowerResponseDTO {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    private Long login_id;
-
     private String firstname;
-
     private String lastname;
-
     private String email;
-
-    private java.time.LocalDateTime created_at;
+    private String username;
+    private String password;
+    private Boolean loginEnabled;
+    private java.time.LocalDateTime createdAt;
 }
