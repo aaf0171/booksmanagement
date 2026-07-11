@@ -43,6 +43,7 @@ public class CreateLoginService {
                 .id(saved.getId())
                 .username(saved.getUsername())
                 .enabled(saved.getEnabled())
+                .lastLogin(saved.getLastLogin())
                 .createdAt(saved.getCreatedAt())
                 .build();
     }

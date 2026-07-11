@@ -14,5 +14,6 @@ public class LoginDTO {
     private Long id;
     private String username;
     private Boolean enabled;
+    private java.time.LocalDateTime lastLogin;
     private java.time.LocalDateTime createdAt;
 }
