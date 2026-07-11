@@ -85,12 +85,34 @@ CREATE TABLE items (
 -- EMPRUNTEURS
 -- =========================
 
+CREATE TABLE logins (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    last_login TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE administrators (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    login_id BIGINT NOT NULL UNIQUE,
+    firstname VARCHAR(100),
+    lastname VARCHAR(100),
+    email VARCHAR(255),
+    FOREIGN KEY (login_id) REFERENCES logins(id) ON DELETE CASCADE,
+    INDEX idx_admins_login (login_id)
+) ENGINE=InnoDB;
+
 CREATE TABLE borrowers (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    login_id BIGINT UNIQUE,
     firstname VARCHAR(100) NOT NULL,
     lastname VARCHAR(100) NOT NULL,
     email VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (login_id) REFERENCES logins(id) ON DELETE CASCADE,
+    INDEX idx_borrowers_login (login_id)
 ) ENGINE=InnoDB;
 
 -- =========================
