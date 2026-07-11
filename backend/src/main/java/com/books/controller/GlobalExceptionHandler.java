@@ -4,6 +4,8 @@ import com.books.exception.DocumentInUseException;
 import com.books.exception.DocumentNotFoundException;
 import com.books.exception.ItemInUseException;
 import com.books.exception.ItemNotFoundException;
+import com.books.exception.LoginConflictException;
+import com.books.exception.LoginValidationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -89,5 +91,25 @@ public class GlobalExceptionHandler {
         body.put("error", "Conflict");
         body.put("message", ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    @ExceptionHandler(LoginConflictException.class)
+    public ResponseEntity<Map<String, Object>> handleLoginConflict(LoginConflictException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("status", 409);
+        body.put("error", "Conflict");
+        body.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    @ExceptionHandler(LoginValidationException.class)
+    public ResponseEntity<Map<String, Object>> handleLoginValidation(LoginValidationException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("status", 400);
+        body.put("error", "Validation Error");
+        body.put("message", ex.getMessage());
+        return ResponseEntity.badRequest().body(body);
     }
 }

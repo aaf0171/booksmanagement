@@ -57,3 +57,12 @@ CREATE TABLE IF NOT EXISTS items (
     acquisition_date DATE,
     location VARCHAR(100)
 );
+
+CREATE TABLE IF NOT EXISTS logins (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    last_login TIMESTAMP NULL,
+    created_at TIMESTAMP NULL
+);
