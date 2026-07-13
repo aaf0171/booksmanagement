@@ -36,6 +36,9 @@ class CreateBorrowerServiceTest {
     @Mock
     private PasswordGenerator passwordGenerator;
 
+    @Mock   
+    private ActivationTokenService activationTokenService;
+
     @InjectMocks
     private CreateBorrowerService createBorrowerService;
 

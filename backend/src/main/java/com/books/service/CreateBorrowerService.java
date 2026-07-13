@@ -1,5 +1,6 @@
 package com.books.service;
 
+import com.books.dto.ActivationTokenDTO;
 import com.books.dto.CreateBorrowerDTO;
 import com.books.dto.CreateBorrowerResponseDTO;
 import com.books.exception.LoginConflictException;
@@ -8,6 +9,7 @@ import com.books.model.Borrower;
 import com.books.model.Login;
 import com.books.repository.BorrowerRepository;
 import com.books.repository.LoginsRepository;
+import com.books.service.ActivationTokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,7 @@ public class CreateBorrowerService {
     private final LoginsRepository loginsRepository;
     private final PasswordEncoder passwordEncoder;
     private final PasswordGenerator passwordGenerator;
+    private final ActivationTokenService activationTokenService;
 
     @Transactional
     public CreateBorrowerResponseDTO create(CreateBorrowerDTO dto) {
@@ -53,6 +56,11 @@ public class CreateBorrowerService {
                 .build();
 
         Borrower savedBorrower = borrowerRepository.save(borrower);
+
+        ActivationTokenDTO activationToken = activationTokenService.generateToken(savedLogin.getId());
+
+
+        // TODO: Here Send mail after token création
 
         return CreateBorrowerResponseDTO.builder()
                 .id(savedBorrower.getId())

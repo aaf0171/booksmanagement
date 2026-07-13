@@ -114,18 +114,6 @@ class ActivationTokenServiceTest {
     }
 
     @Test
-    @DisplayName("shouldReturnBadRequestWhenLoginDisabled")
-    void shouldReturnBadRequestWhenLoginDisabled() {
-        when(loginsRepository.findById(2L)).thenReturn(Optional.of(disabledLogin));
-
-        LoginValidationException ex = assertThrows(LoginValidationException.class,
-                () -> activationTokenService.generateToken(2L));
-
-        assertTrue(ex.getMessage().contains("disabled"));
-        verify(activationTokenRepository, never()).save(any());
-    }
-
-    @Test
     @DisplayName("shouldInvalidatePreviousUnusedToken")
     void shouldInvalidatePreviousUnusedToken() throws NoSuchAlgorithmException {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");

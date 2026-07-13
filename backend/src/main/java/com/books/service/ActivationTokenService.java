@@ -38,10 +38,6 @@ public class ActivationTokenService {
         Login login = loginsRepository.findById(loginId)
                 .orElseThrow(() -> new LoginNotFoundException(loginId));
 
-        if (!login.getEnabled()) {
-            throw new LoginValidationException("Login is disabled: " + loginId);
-        }
-
         invalidateExistingUnusedTokens(loginId);
 
         String plaintextToken = generateSecureToken();
