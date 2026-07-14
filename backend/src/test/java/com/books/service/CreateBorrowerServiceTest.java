@@ -1,5 +1,6 @@
 package com.books.service;
 
+import com.books.dto.ActivationTokenDTO;
 import com.books.dto.CreateBorrowerDTO;
 import com.books.dto.CreateBorrowerResponseDTO;
 import com.books.exception.LoginConflictException;
@@ -36,8 +37,11 @@ class CreateBorrowerServiceTest {
     @Mock
     private PasswordGenerator passwordGenerator;
 
-    @Mock   
+    @Mock
     private ActivationTokenService activationTokenService;
+
+    @Mock
+    private ActivationEmailService activationEmailService;
 
     @InjectMocks
     private CreateBorrowerService createBorrowerService;
@@ -67,6 +71,14 @@ class CreateBorrowerServiceTest {
         Borrower savedBorrower = Borrower.builder().id(1L).login_id(1L).firstname("John").lastname("Doe").build();
         when(borrowerRepository.save(any(Borrower.class))).thenReturn(savedBorrower);
 
+        ActivationTokenDTO tokenDto = ActivationTokenDTO.builder()
+                .id(1L)
+                .loginId(1L)
+                .token("token123")
+                .type("ACTIVATION")
+                .build();
+        when(activationTokenService.generateToken(1L)).thenReturn(tokenDto);
+
         CreateBorrowerResponseDTO result = createBorrowerService.create(validDto);
 
         assertNotNull(result);
@@ -76,6 +88,182 @@ class CreateBorrowerServiceTest {
         assertFalse(result.getLoginEnabled());
         verify(loginsRepository).save(any(Login.class));
         verify(borrowerRepository).save(any(Borrower.class));
+    }
+
+    @Test
+    @DisplayName("shouldSendActivationEmailAfterBorrowerCreation")
+    void shouldSendActivationEmailAfterBorrowerCreation() {
+        when(loginsRepository.existsByUsername("johndoe")).thenReturn(false);
+        when(passwordGenerator.generate()).thenReturn("GenPass123!");
+        when(passwordEncoder.encode("GenPass123!")).thenReturn("$2a$10$hashed");
+
+        Login savedLogin = Login.builder().id(1L).username("johndoe").passwordHash("$2a$10$hashed").build();
+        when(loginsRepository.save(any(Login.class))).thenReturn(savedLogin);
+
+        Borrower savedBorrower = Borrower.builder()
+                .id(1L)
+                .login_id(1L)
+                .firstname("John")
+                .lastname("Doe")
+                .email("john@example.com")
+                .build();
+        when(borrowerRepository.save(any(Borrower.class))).thenReturn(savedBorrower);
+
+        ActivationTokenDTO tokenDto = ActivationTokenDTO.builder()
+                .id(1L)
+                .loginId(1L)
+                .token("token123")
+                .type("ACTIVATION")
+                .build();
+        when(activationTokenService.generateToken(1L)).thenReturn(tokenDto);
+
+        CreateBorrowerResponseDTO result = createBorrowerService.create(validDto);
+
+        assertNotNull(result);
+        verify(activationEmailService).sendActivationEmail("john@example.com", "token123");
+    }
+
+    @Test
+    @DisplayName("shouldNotSendEmailWhenBorrowerCreationFails")
+    void shouldNotSendEmailWhenBorrowerCreationFails() {
+        when(loginsRepository.existsByUsername("johndoe")).thenReturn(false);
+        when(passwordGenerator.generate()).thenReturn("GenPass123!");
+        when(passwordEncoder.encode("GenPass123!")).thenReturn("$2a$10$hashed");
+
+        Login savedLogin = Login.builder().id(1L).username("johndoe").passwordHash("$2a$10$hashed").build();
+        when(loginsRepository.save(any(Login.class))).thenReturn(savedLogin);
+
+        when(borrowerRepository.save(any(Borrower.class))).thenThrow(new RuntimeException("DB error"));
+
+        assertThrows(RuntimeException.class, () -> createBorrowerService.create(validDto));
+
+        verify(activationEmailService, never()).sendActivationEmail(any(), any());
+    }
+
+    @Test
+    @DisplayName("shouldNotSendEmailWhenLoginCreationFails")
+    void shouldNotSendEmailWhenLoginCreationFails() {
+        when(loginsRepository.existsByUsername("johndoe")).thenReturn(false);
+        when(passwordGenerator.generate()).thenReturn("GenPass123!");
+        when(passwordEncoder.encode("GenPass123!")).thenReturn("$2a$10$hashed");
+
+        when(loginsRepository.save(any(Login.class))).thenThrow(new RuntimeException("DB error"));
+
+        assertThrows(RuntimeException.class, () -> createBorrowerService.create(validDto));
+
+        verify(activationEmailService, never()).sendActivationEmail(any(), any());
+    }
+
+    @Test
+    @DisplayName("shouldLogErrorWhenEmailSendingFails")
+    void shouldLogErrorWhenEmailSendingFails() {
+        when(loginsRepository.existsByUsername("johndoe")).thenReturn(false);
+        when(passwordGenerator.generate()).thenReturn("GenPass123!");
+        when(passwordEncoder.encode("GenPass123!")).thenReturn("$2a$10$hashed");
+
+        Login savedLogin = Login.builder().id(1L).username("johndoe").passwordHash("$2a$10$hashed").build();
+        when(loginsRepository.save(any(Login.class))).thenReturn(savedLogin);
+
+        Borrower savedBorrower = Borrower.builder()
+                .id(1L)
+                .login_id(1L)
+                .firstname("John")
+                .lastname("Doe")
+                .email("john@example.com")
+                .build();
+        when(borrowerRepository.save(any(Borrower.class))).thenReturn(savedBorrower);
+
+        ActivationTokenDTO tokenDto = ActivationTokenDTO.builder()
+                .id(1L)
+                .loginId(1L)
+                .token("token123")
+                .type("ACTIVATION")
+                .build();
+        when(activationTokenService.generateToken(1L)).thenReturn(tokenDto);
+
+        doThrow(new RuntimeException("SMTP error")).when(activationEmailService).sendActivationEmail(any(), any());
+
+        CreateBorrowerResponseDTO result = createBorrowerService.create(validDto);
+
+        assertNotNull(result);
+        assertEquals("john@example.com", result.getEmail());
+    }
+
+    @Test
+    @DisplayName("shouldNotRollbackBorrowerOnEmailFailure")
+    void shouldNotRollbackBorrowerOnEmailFailure() {
+        when(loginsRepository.existsByUsername("johndoe")).thenReturn(false);
+        when(passwordGenerator.generate()).thenReturn("GenPass123!");
+        when(passwordEncoder.encode("GenPass123!")).thenReturn("$2a$10$hashed");
+
+        Login savedLogin = Login.builder().id(1L).username("johndoe").passwordHash("$2a$10$hashed").build();
+        when(loginsRepository.save(any(Login.class))).thenReturn(savedLogin);
+
+        Borrower savedBorrower = Borrower.builder()
+                .id(1L)
+                .login_id(1L)
+                .firstname("John")
+                .lastname("Doe")
+                .email("john@example.com")
+                .build();
+        when(borrowerRepository.save(any(Borrower.class))).thenReturn(savedBorrower);
+
+        ActivationTokenDTO tokenDto = ActivationTokenDTO.builder()
+                .id(1L)
+                .loginId(1L)
+                .token("token123")
+                .type("ACTIVATION")
+                .build();
+        when(activationTokenService.generateToken(1L)).thenReturn(tokenDto);
+
+        doThrow(new RuntimeException("SMTP error")).when(activationEmailService).sendActivationEmail(any(), any());
+
+        CreateBorrowerResponseDTO result = createBorrowerService.create(validDto);
+
+        assertNotNull(result);
+        assertEquals(1L, savedBorrower.getId());
+
+        verify(borrowerRepository).save(any(Borrower.class));
+    }
+
+    @Test
+    @DisplayName("shouldNotSendEmailWhenEmailFieldIsNull")
+    void shouldNotSendEmailWhenEmailFieldIsNull() {
+        CreateBorrowerDTO dto = CreateBorrowerDTO.builder()
+                .firstname("John")
+                .lastname("Doe")
+                .email(null)
+                .username("johndoe")
+                .build();
+
+        when(loginsRepository.existsByUsername("johndoe")).thenReturn(false);
+        when(passwordGenerator.generate()).thenReturn("GenPass123!");
+        when(passwordEncoder.encode("GenPass123!")).thenReturn("$2a$10$hashed");
+
+        Login savedLogin = Login.builder().id(1L).username("johndoe").passwordHash("$2a$10$hashed").build();
+        when(loginsRepository.save(any(Login.class))).thenReturn(savedLogin);
+
+        Borrower savedBorrower = Borrower.builder()
+                .id(1L)
+                .login_id(1L)
+                .firstname("John")
+                .lastname("Doe")
+                .email(null)
+                .build();
+        when(borrowerRepository.save(any(Borrower.class))).thenReturn(savedBorrower);
+
+        ActivationTokenDTO tokenDto = ActivationTokenDTO.builder()
+                .id(1L)
+                .loginId(1L)
+                .token("token123")
+                .type("ACTIVATION")
+                .build();
+        when(activationTokenService.generateToken(1L)).thenReturn(tokenDto);
+
+        CreateBorrowerResponseDTO result = createBorrowerService.create(dto);
+
+        assertNotNull(result);
+        verify(activationEmailService, never()).sendActivationEmail(any(), any());
     }
 
     @Test
@@ -109,6 +297,14 @@ class CreateBorrowerServiceTest {
         Borrower savedBorrower = Borrower.builder().id(1L).build();
         when(borrowerRepository.save(any(Borrower.class))).thenReturn(savedBorrower);
 
+        ActivationTokenDTO tokenDto = ActivationTokenDTO.builder()
+                .id(1L)
+                .loginId(1L)
+                .token("token123")
+                .type("ACTIVATION")
+                .build();
+        when(activationTokenService.generateToken(1L)).thenReturn(tokenDto);
+
         createBorrowerService.create(validDto);
 
         verify(passwordEncoder).encode("GenPass123!");
@@ -126,6 +322,14 @@ class CreateBorrowerServiceTest {
 
         Borrower savedBorrower = Borrower.builder().id(1L).build();
         when(borrowerRepository.save(any(Borrower.class))).thenReturn(savedBorrower);
+
+        ActivationTokenDTO tokenDto = ActivationTokenDTO.builder()
+                .id(1L)
+                .loginId(1L)
+                .token("token123")
+                .type("ACTIVATION")
+                .build();
+        when(activationTokenService.generateToken(1L)).thenReturn(tokenDto);
 
         CreateBorrowerResponseDTO result = createBorrowerService.create(validDto);
 

@@ -11,6 +11,7 @@ import com.books.repository.BorrowerRepository;
 import com.books.repository.LoginsRepository;
 import com.books.service.ActivationTokenService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CreateBorrowerService {
 
     private final BorrowerRepository borrowerRepository;
@@ -26,6 +28,7 @@ public class CreateBorrowerService {
     private final PasswordEncoder passwordEncoder;
     private final PasswordGenerator passwordGenerator;
     private final ActivationTokenService activationTokenService;
+    private final ActivationEmailService activationEmailService;
 
     @Transactional
     public CreateBorrowerResponseDTO create(CreateBorrowerDTO dto) {
@@ -59,8 +62,13 @@ public class CreateBorrowerService {
 
         ActivationTokenDTO activationToken = activationTokenService.generateToken(savedLogin.getId());
 
-
-        // TODO: Here Send mail after token création
+        if (savedBorrower.getEmail() != null && !savedBorrower.getEmail().isBlank()) {
+            try {
+                activationEmailService.sendActivationEmail(savedBorrower.getEmail(), activationToken.getToken());
+            } catch (Exception e) {
+                log.error("Failed to send activation email to {}: {}", savedBorrower.getEmail(), e.getMessage(), e);
+            }
+        }
 
         return CreateBorrowerResponseDTO.builder()
                 .id(savedBorrower.getId())

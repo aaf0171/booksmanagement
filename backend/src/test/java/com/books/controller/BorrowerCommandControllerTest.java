@@ -9,6 +9,7 @@ import com.books.model.Login;
 import com.books.repository.BorrowerRepository;
 import com.books.repository.LoginsRepository;
 import com.books.service.CreateBorrowerService;
+import com.books.service.ActivationEmailService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,9 @@ class BorrowerCommandControllerTest {
 
     @Autowired
     private CreateBorrowerService createBorrowerService;
+
+    @Autowired
+    private ActivationEmailService activationEmailService;
 
     private BorrowerCommandController controller;
 
@@ -61,6 +65,48 @@ class BorrowerCommandControllerTest {
         assertEquals("janesmith", response.getBody().getUsername());
         assertNotNull(response.getBody().getPassword());
         assertFalse(response.getBody().getLoginEnabled());
+    }
+
+    @Test
+    @DisplayName("POST_create_borrower_triggers_activation_email")
+    void POST_create_borrower_triggers_activation_email() {
+        CreateBorrowerDTO dto = CreateBorrowerDTO.builder()
+                .firstname("Alice")
+                .lastname("Dupont")
+                .email("alice.dupont@example.com")
+                .username("alicedupont")
+                .build();
+
+        ResponseEntity<CreateBorrowerResponseDTO> response = controller.createBorrower(dto);
+
+        assertEquals(201, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        assertEquals("alice.dupont@example.com", response.getBody().getEmail());
+
+        Login login = loginsRepository.findByUsername("alicedupont").orElseThrow();
+        assertFalse(login.getEnabled());
+
+        Borrower borrower = borrowerRepository.findById(response.getBody().getId()).orElseThrow();
+        assertNotNull(borrower);
+        assertEquals("alice.dupont@example.com", borrower.getEmail());
+    }
+
+    @Test
+    @DisplayName("POST_create_borrower_invalid_data_no_email_sent")
+    void POST_create_borrower_invalid_data_no_email_sent() {
+        CreateBorrowerDTO dto = CreateBorrowerDTO.builder()
+                .firstname("")
+                .lastname("Doe")
+                .username("johndoe")
+                .build();
+
+        LoginValidationException ex = assertThrows(LoginValidationException.class,
+                () -> controller.createBorrower(dto));
+
+        assertEquals("Firstname must not be blank", ex.getMessage());
+
+        assertEquals(0, borrowerRepository.count());
+        assertEquals(0, loginsRepository.count());
     }
 
     @Test
