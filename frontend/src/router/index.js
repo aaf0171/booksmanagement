@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { ref } from 'vue'
+import { useAuthStore } from '@/stores/authStore'
 
 import PublicLayout from '@/layouts/PublicLayout.vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
@@ -20,9 +20,6 @@ import LoanListPage from '@/pages/admin/loans/LoanListPage.vue'
 import LoanHistoryPage from '@/pages/admin/loans/LoanHistoryPage.vue'
 import LoanCreatePage from '@/pages/admin/loans/LoanCreatePage.vue'
 import SettingsPage from '@/pages/admin/settings/SettingsPage.vue'
-
-// Simulé — vrai auth CAS/JWT dans un ticket ultérieur
-export const isAuthenticated = ref(false)
 
 const routes = [
   {
@@ -122,14 +119,17 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, from) => {
+  const authStore = useAuthStore()
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
 
-  if (requiresAuth && !isAuthenticated.value) {
-    return next('/login')
+  if (requiresAuth && !authStore.isAuthenticated) {
+    return '/login'
   }
 
-  next()
+  if (to.path === '/login' && authStore.isAuthenticated) {
+    return '/admin/dashboard'
+  }
 })
 
 export default router
