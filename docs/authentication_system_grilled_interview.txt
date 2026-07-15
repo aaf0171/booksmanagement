@@ -1,0 +1,395 @@
+J'ai le squelette front, mais je pense qu'il faudrait que j'implémente un endpoint gettoken côté backend pour que ça me génère un token JWT apres authentification avec login + password ? Est-ce qu'on implémente également un refresh token ?
+
+Oui, tu arrives à un moment où il faut poser la base de la sécurité côté front. Vu ton architecture (Spring Boot API stateless + VueJS), le flux classique est effectivement :
+
+Le frontend envoie login + password
+Le backend authentifie
+Le backend génère un JWT access token
+Le frontend utilise ce JWT pour appeler les endpoints protégés
+
+Mais il faut réfléchir dès maintenant au refresh token, car l'ajouter plus tard implique souvent de modifier le modèle de sécurité.
+
+1. Endpoint /auth/token ou /auth/login
+
+Je ferais plutôt un endpoint orienté use case :
+
+POST /api/auth/login
+
+Payload :
+
+{
+  "login": "jc.dusse",
+  "password": "secret"
+}
+
+Réponse :
+
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+  "expiresIn": 900
+}
+
+Le JWT contient par exemple :
+
+{
+  "sub": "12345",
+  "login": "jc.dusse",
+  "roles": [
+    "BORROWER"
+  ],
+  "iat": 1784100000,
+  "exp": 1784100900
+}
+
+Le sub devrait être l'identifiant technique du login (ta table logins), pas forcément le username.
+
+2. Durée de vie du JWT
+
+Évite de faire un JWT valable plusieurs jours.
+
+Un choix courant :
+
+Access token : 15 minutes
+Refresh token : 7 à 30 jours
+
+Pourquoi ?
+
+Parce qu'un JWT est difficile à révoquer.
+
+Si quelqu'un vole un access token valable 7 jours, tu as un problème.
+
+3. Le refresh token
+
+Oui, je te conseille de l'implémenter.
+
+Le flux devient :
+
+Login
+VueJS
+ |
+ | POST /auth/login
+ |
+ v
+Spring Boot
+ |
+ | vérifie login/password
+ |
+ +--> génère JWT access token (15 min)
+ |
+ +--> génère refresh token (30 jours)
+ |
+ v
+Réponse
+
+Réponse :
+
+{
+  "accessToken": "...",
+  "refreshToken": "...",
+  "expiresIn": 900
+}
+
+Ensuite :
+
+VueJS
+ |
+ | GET /api/loans
+ | Authorization: Bearer JWT
+ |
+ v
+Spring Security
+
+Si le JWT expire :
+
+VueJS
+ |
+ | POST /auth/refresh
+ | refreshToken
+ |
+ v
+Backend
+ |
+ | vérifie refresh token
+ |
+ | génère nouveau JWT
+ |
+ v
+VueJS continue
+4. Stockage du refresh token côté backend
+
+Je ne mettrais pas le refresh token dans le JWT.
+
+Je créerais une table :
+
+CREATE TABLE refresh_tokens (
+    id BIGINT PRIMARY KEY,
+    login_id BIGINT NOT NULL,
+    token_hash VARCHAR(255) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    revoked BOOLEAN NOT NULL DEFAULT FALSE,
+
+    CONSTRAINT fk_refresh_login
+      FOREIGN KEY(login_id)
+      REFERENCES logins(id)
+);
+
+Comme pour ton activation token :
+
+tu stockes le hash
+tu compares le hash du token reçu
+tu peux révoquer
+
+Ça colle bien avec ton approche actuelle.
+
+5. Au logout ?
+
+Avec JWT seul :
+
+DELETE côté navigateur
+
+Le token continue d'être valide jusqu'à expiration.
+
+Avec refresh token :
+
+POST /auth/logout
+
+Le backend fait :
+
+UPDATE refresh_tokens
+SET revoked=true
+WHERE token_hash = ?
+
+L'access token mourra naturellement après 15 minutes.
+
+6. Côté VueJS
+
+Tu auras probablement :
+
+src/
+ ├── api/
+ │    ├── authApi.js
+ │    └── axios.js
+ │
+ ├── auth/
+ │    ├── authStore.js
+ │    └── authService.js
+ │
+ ├── router/
+ │    ├── index.js
+ │    └── guards.js
+ │
+ └── pages/
+      ├── Login.vue
+      └── Dashboard.vue
+
+Ton axios.js aura un interceptor :
+
+axios.interceptors.request.use(config => {
+    const token = authStore.accessToken
+
+    if(token) {
+        config.headers.Authorization = `Bearer ${token}`
+    }
+
+    return config
+})
+
+Et un interceptor réponse :
+
+401 Unauthorized
+        |
+        v
+appel /auth/refresh
+        |
+        v
+retry requête initiale
+7. Dans ton contexte BooksManagement
+
+Vu ce que tu as déjà :
+
+table logins
+table borrowers
+activation token
+potentiellement admins séparés
+Spring Security
+
+Je ferais :
+
+logins
+ |
+ +---- borrower
+ |
+ +---- administrator
+
+
+login
+ |
+ +---- refresh_tokens
+
+Le login est ton agrégat sécurité.
+
+Donc mon ordre d'implémentation serait :
+
+✅ POST /auth/login
+✅ Génération JWT access token
+✅ Configuration Spring Security JWT filter
+✅ Protection d'un endpoint test (GET /me)
+✅ Table refresh_tokens
+✅ POST /auth/refresh
+✅ POST /auth/logout
+Front Vue avec store auth + guards router
+
+Tu es exactement au bon moment pour le faire : ton backend commence à avoir suffisamment de cas métier pour que l'authentification soit le point d'entrée naturel du frontend.
+
+Donc il faut que j'implémente les endpoints côté backend pour générer les 2 types de tokens
+
+Oui, c'est l'idée. Mais je nuancerais : tu n'as pas forcément deux endpoints de génération de tokens. Le plus propre est d'avoir un endpoint de login qui génère les deux, puis un endpoint dédié pour renouveler l'access token.
+
+Le flux serait plutôt :
+
+POST /auth/login
+        |
+        | login + password
+        |
+        v
+Authentification OK
+        |
+        +--> Génération access token JWT
+        |
+        +--> Génération refresh token
+        |
+        v
+Retour des deux tokens
+
+Puis plus tard :
+
+POST /auth/refresh
+        |
+        | refresh token
+        |
+        v
+Validation refresh token
+        |
+        v
+Nouveau access token JWT
+Endpoints à prévoir
+1. Login
+POST /api/auth/login
+
+Entrée :
+
+{
+  "login": "user",
+  "password": "password"
+}
+
+Traitement :
+
+recherche du login dans logins
+vérification du mot de passe avec ton PasswordEncoder
+vérification que le compte est actif (activation terminée)
+chargement des rôles/permissions
+génération des tokens
+
+Sortie :
+
+{
+  "accessToken": "eyJhbGciOiJIUzI1Ni...",
+  "refreshToken": "a9f82c...",
+  "expiresIn": 900
+}
+2. Refresh
+POST /api/auth/refresh
+
+Entrée :
+
+{
+  "refreshToken": "a9f82c..."
+}
+
+Traitement :
+
+hash du refresh token reçu
+recherche dans refresh_tokens
+vérification :
+existe
+non expiré
+non révoqué
+génération d'un nouveau JWT
+
+Sortie :
+
+{
+  "accessToken": "nouveau.jwt..."
+}
+3. Logout (recommandé)
+POST /api/auth/logout
+
+Entrée :
+
+{
+  "refreshToken": "a9f82c..."
+}
+
+Traitement :
+
+UPDATE refresh_tokens
+SET revoked = true
+WHERE token_hash = ?
+Côté code Spring Boot, ça correspondrait bien à tes services actuels
+
+Tu pourrais avoir quelque chose comme :
+
+auth
+ |
+ +-- controller
+ |     AuthController
+ |
+ +-- application
+ |     LoginService
+ |     RefreshTokenService
+ |
+ +-- domain
+ |     RefreshToken
+ |
+ +-- infrastructure
+       RefreshTokenRepository
+       JwtTokenGenerator
+
+Ton LoginService ferait :
+
+public LoginResponse login(LoginCommand command) {
+
+    Login login = loginRepository.findByUsername(command.username());
+
+    passwordEncoder.matches(
+        command.password(),
+        login.getPassword()
+    );
+
+    String accessToken =
+        jwtTokenGenerator.generate(login);
+
+    String refreshToken =
+        refreshTokenService.create(login);
+
+    return new LoginResponse(
+        accessToken,
+        refreshToken
+    );
+}
+
+Vu ta conception actuelle avec ActivationTokenService, je garderais d'ailleurs le même pattern :
+
+ActivationTokenService
+génère un token temporaire lié à une activation
+stocke un hash
+expiration
+RefreshTokenService
+génère un token temporaire lié à une session
+stocke un hash
+expiration
+
+Ils ont beaucoup de points communs.
+
+La prochaine étape logique avant VueJS serait donc probablement de créer ton module Auth complet côté backend et de tester avec Postman/cURL avant de brancher le frontend.

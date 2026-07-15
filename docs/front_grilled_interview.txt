@@ -1,0 +1,279 @@
+Maintenant que j'ai développé assez de uses cases côté backend. Je voudrais commencer implémenter le Front End avec VueJS en mode composition API. Je ne sais pas par ou commencé. Sans doute définir l'arborescence du Front sous forme de pages. Est-ce que je sépare l'accès public pour les borrowers (/public) et l'accès privé pour les gestionnaires (/admin) ? Donc sans doute commencer par ce concentrer sur le routing sans implémenter le contenu des pages ? Qu'en penses tu ?
+
+Je pense que c'est une très bonne idée. En réalité, un frontend Vue se construit souvent de l'extérieur vers l'intérieur :
+
+Définir les parcours utilisateur.
+Définir les routes.
+Définir les layouts.
+Puis seulement développer les composants de chaque page.
+
+Tu as déjà fait l'inverse côté backend : tu as construit les capacités métier (Use Cases). Maintenant il faut créer les points d'entrée qui vont les utiliser.
+
+Je séparerais les espaces, mais pas les applications
+
+Je ne créerais pas deux applications Vue.
+
+Je ferais une seule SPA avec deux espaces fonctionnels.
+
+/
+├── public
+│
+├── admin
+│
+└── login
+
+Par exemple :
+
+/
+    -> redirection
+
+/public
+/public/login
+/public/register
+/public/activate-account
+/public/reset-password
+
+/admin
+/admin/dashboard
+/admin/borrowers
+/admin/documents
+/admin/items
+/admin/loans
+/admin/history
+/admin/settings
+
+Le Router décidera ensuite si l'utilisateur est authentifié.
+
+Les layouts
+
+C'est probablement la première notion importante avec Vue.
+
+Tu auras sûrement deux layouts.
+
+PublicLayout.vue
+
++--------------------------+
+|          Logo            |
+|--------------------------|
+|                          |
+|      Router View         |
+|                          |
++--------------------------+
+
+et
+
+AdminLayout.vue
+
++---------------------------------------------+
+| Logo       Menu                             |
+|---------------------------------------------|
+|                                             |
+|              Router View                    |
+|                                             |
++---------------------------------------------+
+
+Toutes les pages publiques héritent du premier.
+
+Toutes les pages privées héritent du second.
+
+Du coup chaque page est très petite.
+
+Exemple
+
+AdminBorrowersPage.vue
+
+<template>
+    <BorrowerTable />
+</template>
+Ensuite définir le routing
+
+Je commencerais vraiment par là.
+
+/
+│
+├── Public
+│   ├── Login
+│   ├── Register
+│   ├── Activation
+│   └── Forgotten password
+│
+└── Admin
+    ├── Dashboard
+    ├── Borrowers
+    │      ├── List
+    │      ├── Create
+    │      └── Edit
+    │
+    ├── Documents
+    │      ├── List
+    │      ├── Create
+    │      └── Edit
+    │
+    ├── Items
+    │      ├── List
+    │      └── Edit
+    │
+    ├── Loans
+    │      ├── Active
+    │      ├── History
+    │      └── Create
+    │
+    └── Settings
+
+Aucune page n'a encore de contenu.
+
+Seulement :
+
+<template>
+<h1>Borrowers</h1>
+</template>
+Puis ajouter les Guards
+
+Avant même les appels REST.
+
+Public Route
+
+↓
+
+Pas de contrôle
+
+↓
+
+Affichage
+
+ou
+
+Admin Route
+
+↓
+
+Utilisateur connecté ?
+
+↓
+
+oui
+
+↓
+
+Affichage
+
+non
+
+↓
+
+/login
+
+Ton backend CAS ou JWT ne sera même pas encore branché.
+
+Tu peux simplement faire
+
+const authenticated = true;
+
+pour commencer.
+
+Ensuite connecter progressivement les écrans
+
+Par exemple :
+
+Borrowers
+
+↓
+
+GET /borrowers
+
+↓
+
+Afficher un tableau
+
+Puis
+
+Create Borrower
+
+↓
+
+POST /borrowers
+
+Puis
+
+Delete Borrower
+
+↓
+
+DELETE /borrowers/{id}
+
+etc.
+
+On connecte un Use Case après l'autre.
+
+Une arborescence que j'aime beaucoup
+src/
+
+    api/
+        borrowerApi.js
+        documentApi.js
+        loanApi.js
+
+    router/
+
+    layouts/
+        PublicLayout.vue
+        AdminLayout.vue
+
+    pages/
+
+        public/
+            LoginPage.vue
+            RegisterPage.vue
+            ActivateAccountPage.vue
+
+        admin/
+            DashboardPage.vue
+
+            borrowers/
+                BorrowerListPage.vue
+                BorrowerCreatePage.vue
+                BorrowerEditPage.vue
+
+            documents/
+                DocumentListPage.vue
+                DocumentCreatePage.vue
+
+            loans/
+                LoanListPage.vue
+
+    components/
+
+        borrowers/
+        documents/
+        loans/
+
+    composables/
+        useBorrowers.js
+        useDocuments.js
+        useLoans.js
+
+    stores/
+
+    assets/
+
+Cette organisation sépare clairement les pages (liées au routage), les composants réutilisables, les API qui encapsulent les appels HTTP, et les composables qui portent la logique de présentation.
+
+Une petite nuance sur /public
+
+Je ne mettrais pas forcément le préfixe /public dans les URLs. Les visiteurs comprennent plus naturellement des routes comme :
+
+/login
+/register
+/activate-account
+/forgot-password
+
+Et pour la partie privée :
+
+/admin
+/admin/borrowers
+/admin/documents
+/admin/loans
+
+Le caractère "public" est alors une propriété des routes (via leur layout et leurs gardes), pas un segment visible dans l'URL. Cela donne des adresses plus propres tout en conservant une séparation nette dans le code.
+
+Je pense aussi qu'il est judicieux de geler le design des routes avant d'écrire les pages. C'est un peu l'équivalent, côté frontend, de définir ton API REST avant d'implémenter les contrôleurs. Tu obtiens une ossature stable sur laquelle tu pourras brancher progressivement chacun de tes cas d'utilisation Spring Boot, sans devoir réorganiser le projet au fur et à mesure.

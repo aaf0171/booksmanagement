@@ -1,0 +1,32 @@
+info:
+  name: Documents - Delete
+  type: http
+  seq: 10
+
+http:
+  method: DELETE
+  url: http://127.0.0.1:8082/api/documents/42
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+---
+info:
+  name: Documents - Delete Unknown (404)
+  type: http
+  seq: 11
+
+http:
+  method: DELETE
+  url: http://127.0.0.1:8082/api/documents/99999
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

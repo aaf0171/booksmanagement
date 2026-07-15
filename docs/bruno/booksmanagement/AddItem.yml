@@ -1,0 +1,69 @@
+info:
+  name: Documents - Add Item (Success)
+  type: http
+  seq: 20
+
+http:
+  method: POST
+  url: http://127.0.0.1:8082/api/documents/42/items
+  header:
+    Content-Type: application/json
+  body-json: |
+    {
+      "barcode": "ITEM-001",
+      "location": "Shelf A3",
+      "status": "CLEAN"
+    }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+---
+info:
+  name: Documents - Add Item (404 Document Not Found)
+  type: http
+  seq: 21
+
+http:
+  method: POST
+  url: http://127.0.0.1:8082/api/documents/99999/items
+  header:
+    Content-Type: application/json
+  body-json: |
+    {
+      "barcode": "ITEM-001"
+    }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+---
+info:
+  name: Documents - Add Item (409 Duplicate Barcode)
+  type: http
+  seq: 22
+
+http:
+  method: POST
+  url: http://127.0.0.1:8082/api/documents/42/items
+  header:
+    Content-Type: application/json
+  body-json: |
+    {
+      "barcode": "ITEM-001"
+    }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
