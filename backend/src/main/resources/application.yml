@@ -13,3 +13,10 @@ app:
       from: noreply@example.com
       subject: "Activate your account"
       base-url: http://localhost:3000
+
+auth:
+  jwt:
+    secret-key: "${JWT_SECRET_KEY:defaultSecretKeyForDevelopmentPurposesOnlyChangeInProduction}"
+    access-token-expiry-seconds: 900
+  refresh-token:
+    expiry-days: 30

@@ -23,10 +23,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", LocalDateTime.now().toString());
-        body.put("status", 400);
-        body.put("error", "Bad Request");
+        body.put("status", 401);
+        body.put("error", "Unauthorized");
         body.put("message", ex.getMessage());
-        return ResponseEntity.badRequest().body(body);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+    }
+
+    @ExceptionHandler(com.books.exception.LoginNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleLoginNotFound(com.books.exception.LoginNotFoundException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("status", 401);
+        body.put("error", "Unauthorized");
+        body.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
