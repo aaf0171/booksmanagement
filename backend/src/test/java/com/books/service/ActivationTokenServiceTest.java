@@ -280,6 +280,140 @@ class ActivationTokenServiceTest {
         verify(activationTokenRepository).markAsUsed(1L);
     }
 
+   @Test
+    @DisplayName("shouldHashTokenCorrectly")
+    void shouldHashTokenCorrectly() throws NoSuchAlgorithmException {
+        String plaintextToken = "testToken123";
+
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        byte[] hashBytes = digest.digest(plaintextToken.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        StringBuilder hexString = new StringBuilder(64);
+        for (byte b : hashBytes) {
+            hexString.append(String.format("%02x", b));
+        }
+        String expectedHash = hexString.toString();
+
+        when(activationTokenRepository.findByTokenHash(expectedHash)).thenReturn(Optional.of(existingToken));
+
+        java.util.Optional<ActivationToken> result = activationTokenService.findValidToken(plaintextToken);
+
+        // If hash is correct, the token would be found (but other validation checks may reject it)
+        assertEquals(64, expectedHash.length());
+        verify(activationTokenRepository).findByTokenHash(expectedHash);
+    }
+
+    @Test
+    @DisplayName("shouldFindValidTokenByHash")
+    void shouldFindValidTokenByHash() throws NoSuchAlgorithmException {
+        String plaintextToken = "validToken123";
+
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        byte[] hashBytes = digest.digest(plaintextToken.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        StringBuilder hexString = new StringBuilder(64);
+        for (byte b : hashBytes) {
+            hexString.append(String.format("%02x", b));
+        }
+        String tokenHash = hexString.toString();
+
+        ActivationToken validToken = ActivationToken.builder()
+                .id(1L)
+                .loginId(1L)
+                .type("ACTIVATION")
+                .tokenHash(tokenHash)
+                .expiresAt(LocalDateTime.now().plusHours(1))
+                .usedAt(null)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        when(activationTokenRepository.findByTokenHash(tokenHash)).thenReturn(Optional.of(validToken));
+
+        java.util.Optional<ActivationToken> result = activationTokenService.findValidToken(plaintextToken);
+
+        assertTrue(result.isPresent());
+        assertEquals(1L, result.get().getId());
+        assertEquals(1L, result.get().getLoginId());
+    }
+
+    @Test
+    @DisplayName("shouldReturnEmptyForInvalidToken")
+    void shouldReturnEmptyForInvalidToken() throws NoSuchAlgorithmException {
+        String plaintextToken = "nonExistentToken";
+
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        byte[] hashBytes = digest.digest(plaintextToken.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        StringBuilder hexString = new StringBuilder(64);
+        for (byte b : hashBytes) {
+            hexString.append(String.format("%02x", b));
+        }
+        String tokenHash = hexString.toString();
+
+        when(activationTokenRepository.findByTokenHash(tokenHash)).thenReturn(Optional.empty());
+
+        java.util.Optional<ActivationToken> result = activationTokenService.findValidToken(plaintextToken);
+
+        assertFalse(result.isPresent());
+    }
+
+    @Test
+    @DisplayName("shouldReturnEmptyForExpiredToken")
+    void shouldReturnEmptyForExpiredToken() throws NoSuchAlgorithmException {
+        String plaintextToken = "expiredToken123";
+
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        byte[] hashBytes = digest.digest(plaintextToken.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        StringBuilder hexString = new StringBuilder(64);
+        for (byte b : hashBytes) {
+            hexString.append(String.format("%02x", b));
+        }
+        String tokenHash = hexString.toString();
+
+        ActivationToken expiredToken = ActivationToken.builder()
+                .id(2L)
+                .loginId(1L)
+                .type("ACTIVATION")
+                .tokenHash(tokenHash)
+                .expiresAt(LocalDateTime.now().minusHours(1))
+                .usedAt(null)
+                .createdAt(LocalDateTime.now().minusHours(2))
+                .build();
+
+        when(activationTokenRepository.findByTokenHash(tokenHash)).thenReturn(Optional.of(expiredToken));
+
+        java.util.Optional<ActivationToken> result = activationTokenService.findValidToken(plaintextToken);
+
+        assertFalse(result.isPresent());
+    }
+
+    @Test
+    @DisplayName("shouldReturnEmptyForUsedToken")
+    void shouldReturnEmptyForUsedToken() throws NoSuchAlgorithmException {
+        String plaintextToken = "usedToken123";
+
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        byte[] hashBytes = digest.digest(plaintextToken.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        StringBuilder hexString = new StringBuilder(64);
+        for (byte b : hashBytes) {
+            hexString.append(String.format("%02x", b));
+        }
+        String tokenHash = hexString.toString();
+
+        ActivationToken usedToken = ActivationToken.builder()
+                .id(3L)
+                .loginId(1L)
+                .type("ACTIVATION")
+                .tokenHash(tokenHash)
+                .expiresAt(LocalDateTime.now().plusHours(1))
+                .usedAt(LocalDateTime.now())
+                .createdAt(LocalDateTime.now().minusHours(1))
+                .build();
+
+        when(activationTokenRepository.findByTokenHash(tokenHash)).thenReturn(Optional.of(usedToken));
+
+        java.util.Optional<ActivationToken> result = activationTokenService.findValidToken(plaintextToken);
+
+        assertFalse(result.isPresent());
+    }
+
     @Test
     @DisplayName("shouldCreateNewTokenWhenExpiredTokenExists")
     void shouldCreateNewTokenWhenExpiredTokenExists() throws NoSuchAlgorithmException {

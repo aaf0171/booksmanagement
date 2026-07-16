@@ -1,5 +1,6 @@
 package com.books.controller;
 
+import com.books.exception.ActivationTokenException;
 import com.books.exception.DocumentInUseException;
 import com.books.exception.DocumentNotFoundException;
 import com.books.exception.ItemInUseException;
@@ -119,6 +120,16 @@ public class GlobalExceptionHandler {
         body.put("timestamp", LocalDateTime.now().toString());
         body.put("status", 400);
         body.put("error", "Validation Error");
+        body.put("message", ex.getMessage());
+        return ResponseEntity.badRequest().body(body);
+    }
+
+    @ExceptionHandler(ActivationTokenException.class)
+    public ResponseEntity<Map<String, Object>> handleActivationToken(ActivationTokenException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("status", 400);
+        body.put("error", "Bad Request");
         body.put("message", ex.getMessage());
         return ResponseEntity.badRequest().body(body);
     }

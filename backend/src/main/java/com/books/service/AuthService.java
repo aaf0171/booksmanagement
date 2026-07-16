@@ -4,10 +4,13 @@ import com.books.dto.LoginRequestDTO;
 import com.books.dto.LoginResponseDTO;
 import com.books.dto.RefreshRequestDTO;
 import com.books.dto.RefreshResponseDTO;
+import com.books.exception.ActivationTokenException;
 import com.books.exception.LoginNotFoundException;
+import com.books.model.ActivationToken;
 import com.books.model.Login;
 import com.books.repository.LoginsRepository;
 import com.books.repository.RoleRepository;
+import com.books.service.ActivationTokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +27,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenGenerator jwtTokenGenerator;
     private final RefreshTokenService refreshTokenService;
+    private final ActivationTokenService activationTokenService;
 
     private long accessTokenExpirySeconds;
 
@@ -96,5 +100,18 @@ public class AuthService {
         }
 
         refreshTokenService.revoke(refreshToken);
+    }
+
+    public void activate(String token) {
+        ActivationToken activationToken = activationTokenService.findValidToken(token)
+                .orElseThrow(() -> new ActivationTokenException("Invalid or expired activation token"));
+
+        Login login = loginsRepository.findById(activationToken.getLoginId())
+                .orElseThrow(() -> new ActivationTokenException("Invalid or expired activation token"));
+
+        login.setEnabled(true);
+        loginsRepository.save(login);
+
+        activationTokenService.markTokenAsUsed(activationToken.getId());
     }
 }

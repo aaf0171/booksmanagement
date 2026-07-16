@@ -184,4 +184,22 @@ class ActivationTokenRepositoryTest {
 
         assertEquals(2, tokens.size());
     }
+
+    @Test
+    @DisplayName("should_update_login_enabled")
+    void shouldUpdateLoginEnabled() {
+        testLogin.setEnabled(false);
+        loginsRepository.save(testLogin);
+        activationTokenRepository.flush();
+
+        assertFalse(testLogin.getEnabled());
+
+        Login updatedLogin = loginsRepository.findById(testLogin.getId()).orElseThrow();
+        updatedLogin.setEnabled(true);
+        loginsRepository.save(updatedLogin);
+        activationTokenRepository.flush();
+
+        Login fetchedLogin = loginsRepository.findById(testLogin.getId()).orElseThrow();
+        assertTrue(fetchedLogin.getEnabled());
+    }
 }

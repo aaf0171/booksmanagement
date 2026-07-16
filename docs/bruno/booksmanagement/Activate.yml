@@ -1,0 +1,24 @@
+info:
+  name: Activate
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: http://localhost:8082/api/auth/activate
+  headers:
+    - name: Authorization
+      value: Bearer {{jwt}}
+  body:
+    type: json
+    data: |-
+      {
+           "token": "PjhEhZRBf+Uw2OJ4foiYj/4Y1z6mYvVcukveI9E0+74="
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

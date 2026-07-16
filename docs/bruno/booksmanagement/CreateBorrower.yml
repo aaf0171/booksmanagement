@@ -1,0 +1,27 @@
+info:
+  name: CreateBorrower
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: http://localhost:8082/api/borrowers
+  headers:
+    - name: Authorization
+      value: Bearer {{jwt}}
+  body:
+    type: json
+    data: |-
+      {
+           "firstname": "Alice",
+           "lastname": "Dupont",
+           "email": "alice.dupont@example.com",
+           "username": "alicedupont"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

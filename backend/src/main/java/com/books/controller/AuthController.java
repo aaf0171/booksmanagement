@@ -91,4 +91,20 @@ public class AuthController {
 
         return ResponseEntity.ok(response);
     }
+
+    @Operation(summary = "Activate a borrower account using the activation token")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Account activated successfully",
+            content = @Content(schema = @Schema(implementation = ActivationResponseDTO.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid or expired activation token",
+            content = @Content(schema = @Schema(implementation = Map.class)))
+    })
+    @PostMapping("/activate")
+    public ResponseEntity<ActivationResponseDTO> activate(@Valid @RequestBody ActivationRequestDTO request) {
+        authService.activate(request.getToken());
+        ActivationResponseDTO response = ActivationResponseDTO.builder()
+                .message("Account activated successfully")
+                .build();
+        return ResponseEntity.ok(response);
+    }
 }

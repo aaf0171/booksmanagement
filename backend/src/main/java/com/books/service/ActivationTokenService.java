@@ -129,4 +129,29 @@ public class ActivationTokenService {
     public void markTokenAsUsed(Long tokenId) {
         activationTokenRepository.markAsUsed(tokenId);
     }
+
+    @Transactional(readOnly = true)
+    public Optional<ActivationToken> findValidToken(String token) {
+        String tokenHash = hashToken(token);
+
+        Optional<ActivationToken> tokenOpt = activationTokenRepository.findByTokenHash(tokenHash);
+
+        if (tokenOpt.isEmpty()) {
+            return Optional.empty();
+        }
+
+        ActivationToken storedToken = tokenOpt.get();
+
+        if (storedToken.getUsedAt() != null) {
+            log.info("Token already used for loginId: {}", storedToken.getLoginId());
+            return Optional.empty();
+        }
+
+        if (storedToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            log.info("Token expired for loginId: {}", storedToken.getLoginId());
+            return Optional.empty();
+        }
+
+        return Optional.of(storedToken);
+    }
 }

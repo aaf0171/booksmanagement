@@ -1,0 +1,285 @@
+# Implémentation activation de compte par email
+
+## Contexte
+
+Lors de la création d'un compte utilisateur, celui-ci ne doit pas pouvoir se connecter immédiatement. Un email d'activation est envoyé afin que l'utilisateur valide son adresse email avant d'obtenir un accès à l'application.
+
+Le système d'authentification utilise une table commune `logins` pour tous les profils (emprunteur, administrateur, etc.). L'activation concerne donc uniquement le compte d'authentification et non les entités métier.
+
+---
+
+# Flux fonctionnel
+
+```text
+Création compte
+      |
+      v
+Création login avec enabled=false
+      |
+      v
+Génération d'un token d'activation
+      |
+      v
+Stockage du hash du token dans activation_tokens
+      |
+      v
+Envoi email contenant un lien frontend
+      |
+      v
+Utilisateur clique sur le lien
+      |
+      v
+Frontend VueJS récupère le token
+      |
+      v
+POST /api/auth/activate
+      |
+      v
+Backend valide le token
+      |
+      +--> Activation du login (enabled=true)
+      |
+      +--> Marquage du token comme utilisé
+      |
+      v
+Frontend affiche "Compte activé"
+```
+
+---
+
+# Lien envoyé par email
+
+Le lien doit pointer vers le frontend et non directement vers le backend.
+
+Exemple :
+
+```
+https://app.mabibliotheque.com/activate?token=xxxxx
+```
+
+Raison :
+
+* Le backend reste une API indépendante du frontend.
+* Le frontend gère l'affichage des messages utilisateur.
+* Le backend ne connaît pas les routes VueJS.
+* Le système reste compatible avec d'autres clients (mobile, autre frontend).
+
+---
+
+# Endpoint à ajouter
+
+## POST /api/auth/activate
+
+Endpoint public (sans JWT nécessaire).
+
+Request :
+
+```json
+{
+  "token": "xxxxx"
+}
+```
+
+Traitement :
+
+1. Hash du token reçu.
+2. Recherche du token dans `activation_tokens`.
+3. Vérification :
+
+   * token existant ;
+   * token non utilisé ;
+   * token non expiré.
+4. Récupération du `login_id`.
+5. Activation du compte :
+
+   ```
+   login.enabled = true
+   ```
+6. Marquage du token comme utilisé :
+
+   ```
+   activation_tokens.used_at = now()
+   ```
+
+---
+
+# Répartition des responsabilités
+
+## AuthController
+
+Expose l'API :
+
+```
+POST /api/auth/activate
+```
+
+Délègue le traitement métier.
+
+---
+
+## AuthService
+
+Orchestre l'activation :
+
+```text
+AuthService.activate(token)
+
+    |
+    +--> ActivationTokenService.validateToken(token)
+
+    |
+    +--> LoginRepository.findById(loginId)
+
+    |
+    +--> login.enabled = true
+
+    |
+    +--> ActivationTokenService.markTokenAsUsed()
+```
+
+---
+
+## ActivationTokenService
+
+Responsabilités :
+
+* Génération d'un token sécurisé.
+* Hash SHA-256 du token.
+* Validation du token.
+* Gestion expiration.
+* Invalidation des anciens tokens.
+* Marquage comme utilisé.
+
+Le token en clair n'est jamais stocké en base.
+
+---
+
+# Modèle de données
+
+## Table logins
+
+La colonne `enabled` représente l'état du compte.
+
+Actuellement :
+
+```sql
+enabled tinyint(1) NOT NULL DEFAULT 1
+```
+
+A modifier :
+
+```sql
+enabled tinyint(1) NOT NULL DEFAULT 0
+```
+
+Un nouveau compte est donc désactivé par défaut.
+
+Après activation :
+
+```sql
+UPDATE logins
+SET enabled = 1
+WHERE id = ?
+```
+
+---
+
+## Table activation_tokens
+
+Modèle actuel :
+
+```
+id
+login_id
+type
+token_hash
+expires_at
+used_at
+created_at
+```
+
+Choix volontaire :
+
+* Pas de relation JPA `@ManyToOne`.
+* Stockage direct du `login_id`.
+* Approche orientée SQL et découplée.
+
+Le token en base est uniquement le hash SHA-256.
+
+---
+
+# Améliorations proposées
+
+## Token URL-safe
+
+Remplacer :
+
+```java
+Base64.getEncoder()
+```
+
+par :
+
+```java
+Base64.getUrlEncoder()
+      .withoutPadding()
+```
+
+afin d'éviter des caractères problématiques dans une URL (`+`, `/`, `=`).
+
+---
+
+## Enum pour le type de token
+
+Remplacer :
+
+```java
+String type
+```
+
+par :
+
+```java
+enum TokenType {
+    ACTIVATION,
+    PASSWORD_RESET,
+    EMAIL_CHANGE
+}
+```
+
+avec :
+
+```java
+@Enumerated(EnumType.STRING)
+```
+
+---
+
+## Index SQL
+
+Ajouter un index sur :
+
+```sql
+activation_tokens.login_id
+```
+
+afin d'optimiser les recherches et invalidations de tokens.
+
+---
+
+# Sécurité Spring
+
+Le endpoint doit être accessible sans authentification :
+
+```java
+.requestMatchers(
+    "/api/auth/login",
+    "/api/auth/refresh",
+    "/api/auth/activate"
+).permitAll()
+```
+
+Le `UserDetailsService` doit utiliser `login.enabled` afin d'empêcher un compte non activé d'obtenir un JWT.
+
+```
+```
