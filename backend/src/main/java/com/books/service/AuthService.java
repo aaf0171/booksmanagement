@@ -7,6 +7,7 @@ import com.books.dto.RefreshResponseDTO;
 import com.books.exception.LoginNotFoundException;
 import com.books.model.Login;
 import com.books.repository.LoginsRepository;
+import com.books.repository.RoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +20,7 @@ import java.util.List;
 public class AuthService {
 
     private final LoginsRepository loginsRepository;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenGenerator jwtTokenGenerator;
     private final RefreshTokenService refreshTokenService;
@@ -46,7 +48,9 @@ public class AuthService {
             throw new LoginNotFoundException("Invalid credentials or account not active");
         }
 
-        List<String> roles = List.of("BORROWER");
+        List<String> roles = login.getRoles().stream()
+                .map(com.books.model.Role::getName)
+                .toList();
 
         login.setLastLogin(java.time.LocalDateTime.now());
         loginsRepository.save(login);
@@ -72,7 +76,9 @@ public class AuthService {
         Login login = loginsRepository.findById(loginId)
                 .orElseThrow(() -> new LoginNotFoundException("Login not found"));
 
-        List<String> roles = List.of("BORROWER");
+        List<String> roles = login.getRoles().stream()
+                .map(com.books.model.Role::getName)
+                .toList();
 
         refreshTokenService.revoke(refreshToken);
 

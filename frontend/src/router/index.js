@@ -5,7 +5,6 @@ import PublicLayout from '@/layouts/PublicLayout.vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 
 import LoginPage from '@/pages/public/LoginPage.vue'
-import RegisterPage from '@/pages/public/RegisterPage.vue'
 import ActivateAccountPage from '@/pages/public/ActivateAccountPage.vue'
 import ForgotPasswordPage from '@/pages/public/ForgotPasswordPage.vue'
 
@@ -31,11 +30,6 @@ const routes = [
     path: '/login',
     layout: PublicLayout,
     component: LoginPage
-  },
-  {
-    path: '/register',
-    layout: PublicLayout,
-    component: RegisterPage
   },
   {
     path: '/activate-account',

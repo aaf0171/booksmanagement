@@ -4,7 +4,9 @@ import com.books.dto.*;
 import com.books.exception.LoginNotFoundException;
 import com.books.model.Login;
 import com.books.model.RefreshToken;
+import com.books.model.Role;
 import com.books.repository.LoginsRepository;
+import com.books.repository.RoleRepository;
 import com.books.service.AuthService;
 import com.books.service.RefreshTokenService;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -46,6 +49,9 @@ class AuthControllerIntegrationTest {
     private LoginsRepository loginsRepository;
 
     @Autowired
+    private RoleRepository roleRepository;
+
+    @Autowired
     private AuthService authService;
 
     @Autowired
@@ -61,10 +67,13 @@ class AuthControllerIntegrationTest {
     @BeforeEach
     void setUp() {
         loginsRepository.deleteAll();
+        roleRepository.deleteAll();
         mockMvc = MockMvcBuilders
                 .webAppContextSetup(context)
                 .addFilter(springSecurityFilterChain)
                 .build();
+
+        Role borrower = roleRepository.save(Role.builder().name("BORROWER").build());
 
         testLogin = Login.builder()
                 .id(null)
@@ -73,6 +82,7 @@ class AuthControllerIntegrationTest {
                 .enabled(true)
                 .lastLogin(null)
                 .createdAt(LocalDateTime.now())
+                .roles(Set.of(borrower))
                 .build();
         testLogin = loginsRepository.save(testLogin);
     }
@@ -117,10 +127,12 @@ class AuthControllerIntegrationTest {
     @Test
     @DisplayName("POST_login_inactive_account_returns_401")
     void POST_login_inactive_account_returns_401() throws Exception {
+        Role borrower = roleRepository.findByName("BORROWER").orElseGet(() -> roleRepository.save(Role.builder().name("BORROWER").build()));
         Login disabledLogin = Login.builder()
                 .username("disabled.user")
                 .passwordHash("$2a$10$ZcX.L1QKtn4tMs.eCqQIBORsiWiv7bE3Exh3hnjeWWUHvmsCa3KRe")
                 .enabled(false)
+                .roles(Set.of(borrower))
                 .build();
         disabledLogin = loginsRepository.save(disabledLogin);
 

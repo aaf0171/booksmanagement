@@ -1,1 +1,1 @@
-mariadb -h 127.0.0.1 -u bookadmin -pcerise booksmanagement -A;
+mariadb -h 127.0.0.1 -u bookadmin -pcerise booksmanagement -A

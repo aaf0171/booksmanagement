@@ -1,0 +1,114 @@
+Moi j'aurais mis logins, login_roles (jointure) et roles
+
+Oui, et c'est même le modèle le plus propre côté conception. Ce que tu proposes est une vraie modélisation RBAC (Role-Based Access Control) :
+
+             +------------+
+             |   logins   |
+             +------------+
+             | id         |
+             | username   |
+             | password   |
+             | enabled    |
+             +------------+
+                    |
+                    |
+             +--------------+
+             | login_roles  |
+             +--------------+
+             | login_id     |
+             | role_id      |
+             +--------------+
+                    |
+                    |
+             +------------+
+             |   roles    |
+             +------------+
+             | id         |
+             | name       |
+             +------------+
+
+C'est le modèle que tu retrouveras dans beaucoup d'applications d'entreprise.
+
+Exemple de données
+
+Table roles :
+
+id	name
+1	BORROWER
+2	LIBRARIAN
+3	ADMIN
+
+Table logins :
+
+id	username
+10	jean
+11	marie
+
+Table login_roles :
+
+login_id	role_id
+10	1
+11	2
+11	1
+
+Ce qui donne :
+
+jean
+ └── BORROWER
+
+
+marie
+ ├── LIBRARIAN
+ └── BORROWER
+Côté Spring/JPA
+
+Tu pourrais avoir :
+
+Role
+@Entity
+@Table(name = "roles")
+public class Role {
+
+    @Id
+    private Long id;
+
+    @Column(unique = true)
+    private String name;
+}
+Login
+@Entity
+@Table(name = "logins")
+public class Login {
+
+    @Id
+    private Long id;
+
+    private String username;
+
+    private String passwordHash;
+
+    private Boolean enabled;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "login_roles",
+        joinColumns = @JoinColumn(name = "login_id"),
+        inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<Role> roles;
+}
+
+Ensuite ton AuthService devient :
+
+List<String> roles = login.getRoles()
+        .stream()
+        .map(Role::getName)
+        .toList();
+
+et tu génères :
+
+jwtTokenGenerator.generate(
+    login.getId(),
+    login.getUsername(),
+    roles
+);

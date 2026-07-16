@@ -6,7 +6,9 @@ import com.books.dto.RefreshRequestDTO;
 import com.books.dto.RefreshResponseDTO;
 import com.books.exception.LoginNotFoundException;
 import com.books.model.Login;
+import com.books.model.Role;
 import com.books.repository.LoginsRepository;
+import com.books.repository.RoleRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,6 +23,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -32,6 +35,9 @@ class AuthServiceTest {
 
     @Mock
     private LoginsRepository loginsRepository;
+
+    @Mock
+    private RoleRepository roleRepository;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -51,11 +57,14 @@ class AuthServiceTest {
     void setUp() {
         authService.setAccessTokenExpirySecondsForTest(900);
 
+        Role borrower = Role.builder().id(1L).name("BORROWER").build();
+
         activeLogin = Login.builder()
                 .id(1L)
                 .username("jc.dusse")
                 .passwordHash("$2a$10$hashedpassword")
                 .enabled(true)
+                .roles(Set.of(borrower))
                 .lastLogin(null)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -96,11 +105,13 @@ class AuthServiceTest {
     @Test
     @DisplayName("shouldReturn401WhenAccountIsNotActivated")
     void shouldReturn401WhenAccountIsNotActivated() {
+        Role borrower = Role.builder().id(1L).name("BORROWER").build();
         Login disabledLogin = Login.builder()
                 .id(1L)
                 .username("jc.dusse")
                 .passwordHash("$2a$10$hashedpassword")
                 .enabled(false)
+                .roles(Set.of(borrower))
                 .build();
 
         LoginRequestDTO request = new LoginRequestDTO("jc.dusse", "secret");
