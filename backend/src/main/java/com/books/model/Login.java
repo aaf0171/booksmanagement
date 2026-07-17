@@ -24,7 +24,7 @@ public class Login {
     @Column(nullable = false, unique = true)
     private String username;
 
-    @Column(nullable = false)
+    @Column
     private String passwordHash;
 
     @Column(nullable = false)

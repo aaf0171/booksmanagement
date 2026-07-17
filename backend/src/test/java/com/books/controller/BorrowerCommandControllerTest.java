@@ -63,7 +63,7 @@ class BorrowerCommandControllerTest {
         assertNotNull(response.getBody());
         assertEquals("Jane", response.getBody().getFirstname());
         assertEquals("janesmith", response.getBody().getUsername());
-        assertNotNull(response.getBody().getPassword());
+        assertNull(response.getBody().getPassword());
         assertFalse(response.getBody().getLoginEnabled());
     }
 
@@ -193,8 +193,8 @@ class BorrowerCommandControllerTest {
     }
 
     @Test
-    @DisplayName("POST_response_contains_raw_password")
-    void POST_response_contains_raw_password() {
+    @DisplayName("POST_response_password_is_null_when_login_disabled")
+    void POST_response_password_is_null_when_login_disabled() {
         CreateBorrowerDTO dto = CreateBorrowerDTO.builder()
                 .firstname("John")
                 .lastname("Doe")
@@ -204,8 +204,7 @@ class BorrowerCommandControllerTest {
         ResponseEntity<CreateBorrowerResponseDTO> response = controller.createBorrower(dto);
 
         assertNotNull(response.getBody());
-        assertNotNull(response.getBody().getPassword());
-        assertFalse(response.getBody().getPassword().isBlank());
+        assertNull(response.getBody().getPassword());
     }
 
     @Test

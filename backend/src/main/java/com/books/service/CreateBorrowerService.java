@@ -12,7 +12,6 @@ import com.books.repository.LoginsRepository;
 import com.books.service.ActivationTokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,8 +24,6 @@ public class CreateBorrowerService {
 
     private final BorrowerRepository borrowerRepository;
     private final LoginsRepository loginsRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final PasswordGenerator passwordGenerator;
     private final ActivationTokenService activationTokenService;
     private final ActivationEmailService activationEmailService;
 
@@ -38,12 +35,9 @@ public class CreateBorrowerService {
             throw new LoginConflictException(dto.getUsername());
         }
 
-        String rawPassword = passwordGenerator.generate();
-        String hashedPassword = passwordEncoder.encode(rawPassword);
-
         Login login = Login.builder()
                 .username(dto.getUsername())
-                .passwordHash(hashedPassword)
+                .passwordHash(null)
                 .enabled(false)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -76,7 +70,7 @@ public class CreateBorrowerService {
                 .lastname(savedBorrower.getLastname())
                 .email(savedBorrower.getEmail())
                 .username(savedLogin.getUsername())
-                .password(rawPassword)
+                .password(null)
                 .loginEnabled(false)
                 .createdAt(savedBorrower.getCreated_at())
                 .build();

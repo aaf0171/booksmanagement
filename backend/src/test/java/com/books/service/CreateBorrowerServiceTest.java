@@ -16,7 +16,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -30,12 +29,6 @@ class CreateBorrowerServiceTest {
 
     @Mock
     private LoginsRepository loginsRepository;
-
-    @Mock
-    private PasswordEncoder passwordEncoder;
-
-    @Mock
-    private PasswordGenerator passwordGenerator;
 
     @Mock
     private ActivationTokenService activationTokenService;
@@ -62,10 +55,8 @@ class CreateBorrowerServiceTest {
     @DisplayName("shouldCreateBorrowerWithLogin")
     void shouldCreateBorrowerWithLogin() {
         when(loginsRepository.existsByUsername("johndoe")).thenReturn(false);
-        when(passwordGenerator.generate()).thenReturn("GenPass123!");
-        when(passwordEncoder.encode("GenPass123!")).thenReturn("$2a$10$hashed");
 
-        Login savedLogin = Login.builder().id(1L).username("johndoe").passwordHash("$2a$10$hashed").build();
+        Login savedLogin = Login.builder().id(1L).username("johndoe").passwordHash(null).build();
         when(loginsRepository.save(any(Login.class))).thenReturn(savedLogin);
 
         Borrower savedBorrower = Borrower.builder().id(1L).login_id(1L).firstname("John").lastname("Doe").build();
@@ -84,7 +75,7 @@ class CreateBorrowerServiceTest {
         assertNotNull(result);
         assertEquals("John", result.getFirstname());
         assertEquals("johndoe", result.getUsername());
-        assertEquals("GenPass123!", result.getPassword());
+        assertNull(result.getPassword());
         assertFalse(result.getLoginEnabled());
         verify(loginsRepository).save(any(Login.class));
         verify(borrowerRepository).save(any(Borrower.class));
@@ -94,10 +85,8 @@ class CreateBorrowerServiceTest {
     @DisplayName("shouldSendActivationEmailAfterBorrowerCreation")
     void shouldSendActivationEmailAfterBorrowerCreation() {
         when(loginsRepository.existsByUsername("johndoe")).thenReturn(false);
-        when(passwordGenerator.generate()).thenReturn("GenPass123!");
-        when(passwordEncoder.encode("GenPass123!")).thenReturn("$2a$10$hashed");
 
-        Login savedLogin = Login.builder().id(1L).username("johndoe").passwordHash("$2a$10$hashed").build();
+        Login savedLogin = Login.builder().id(1L).username("johndoe").passwordHash(null).build();
         when(loginsRepository.save(any(Login.class))).thenReturn(savedLogin);
 
         Borrower savedBorrower = Borrower.builder()
@@ -120,22 +109,20 @@ class CreateBorrowerServiceTest {
         CreateBorrowerResponseDTO result = createBorrowerService.create(validDto);
 
         assertNotNull(result);
-        verify(activationEmailService).sendActivationEmail("john@example.com", "token123");
+    verify(activationEmailService).sendActivationEmail("john@example.com", "token123");
     }
 
     @Test
     @DisplayName("shouldNotSendEmailWhenBorrowerCreationFails")
     void shouldNotSendEmailWhenBorrowerCreationFails() {
         when(loginsRepository.existsByUsername("johndoe")).thenReturn(false);
-        when(passwordGenerator.generate()).thenReturn("GenPass123!");
-        when(passwordEncoder.encode("GenPass123!")).thenReturn("$2a$10$hashed");
 
-        Login savedLogin = Login.builder().id(1L).username("johndoe").passwordHash("$2a$10$hashed").build();
+        Login savedLogin = Login.builder().id(1L).username("johndoe").passwordHash(null).build();
         when(loginsRepository.save(any(Login.class))).thenReturn(savedLogin);
 
         when(borrowerRepository.save(any(Borrower.class))).thenThrow(new RuntimeException("DB error"));
 
-        assertThrows(RuntimeException.class, () -> createBorrowerService.create(validDto));
+  assertThrows(RuntimeException.class, () -> createBorrowerService.create(validDto));
 
         verify(activationEmailService, never()).sendActivationEmail(any(), any());
     }
@@ -144,12 +131,10 @@ class CreateBorrowerServiceTest {
     @DisplayName("shouldNotSendEmailWhenLoginCreationFails")
     void shouldNotSendEmailWhenLoginCreationFails() {
         when(loginsRepository.existsByUsername("johndoe")).thenReturn(false);
-        when(passwordGenerator.generate()).thenReturn("GenPass123!");
-        when(passwordEncoder.encode("GenPass123!")).thenReturn("$2a$10$hashed");
 
         when(loginsRepository.save(any(Login.class))).thenThrow(new RuntimeException("DB error"));
 
-        assertThrows(RuntimeException.class, () -> createBorrowerService.create(validDto));
+   assertThrows(RuntimeException.class, () -> createBorrowerService.create(validDto));
 
         verify(activationEmailService, never()).sendActivationEmail(any(), any());
     }
@@ -158,10 +143,8 @@ class CreateBorrowerServiceTest {
     @DisplayName("shouldLogErrorWhenEmailSendingFails")
     void shouldLogErrorWhenEmailSendingFails() {
         when(loginsRepository.existsByUsername("johndoe")).thenReturn(false);
-        when(passwordGenerator.generate()).thenReturn("GenPass123!");
-        when(passwordEncoder.encode("GenPass123!")).thenReturn("$2a$10$hashed");
 
-        Login savedLogin = Login.builder().id(1L).username("johndoe").passwordHash("$2a$10$hashed").build();
+        Login savedLogin = Login.builder().id(1L).username("johndoe").passwordHash(null).build();
         when(loginsRepository.save(any(Login.class))).thenReturn(savedLogin);
 
         Borrower savedBorrower = Borrower.builder()
@@ -185,7 +168,7 @@ class CreateBorrowerServiceTest {
 
         CreateBorrowerResponseDTO result = createBorrowerService.create(validDto);
 
-        assertNotNull(result);
+      assertNotNull(result);
         assertEquals("john@example.com", result.getEmail());
     }
 
@@ -193,10 +176,8 @@ class CreateBorrowerServiceTest {
     @DisplayName("shouldNotRollbackBorrowerOnEmailFailure")
     void shouldNotRollbackBorrowerOnEmailFailure() {
         when(loginsRepository.existsByUsername("johndoe")).thenReturn(false);
-        when(passwordGenerator.generate()).thenReturn("GenPass123!");
-        when(passwordEncoder.encode("GenPass123!")).thenReturn("$2a$10$hashed");
 
-        Login savedLogin = Login.builder().id(1L).username("johndoe").passwordHash("$2a$10$hashed").build();
+        Login savedLogin = Login.builder().id(1L).username("johndoe").passwordHash(null).build();
         when(loginsRepository.save(any(Login.class))).thenReturn(savedLogin);
 
         Borrower savedBorrower = Borrower.builder()
@@ -223,7 +204,7 @@ class CreateBorrowerServiceTest {
         assertNotNull(result);
         assertEquals(1L, savedBorrower.getId());
 
-        verify(borrowerRepository).save(any(Borrower.class));
+     verify(borrowerRepository).save(any(Borrower.class));
     }
 
     @Test
@@ -237,10 +218,8 @@ class CreateBorrowerServiceTest {
                 .build();
 
         when(loginsRepository.existsByUsername("johndoe")).thenReturn(false);
-        when(passwordGenerator.generate()).thenReturn("GenPass123!");
-        when(passwordEncoder.encode("GenPass123!")).thenReturn("$2a$10$hashed");
 
-        Login savedLogin = Login.builder().id(1L).username("johndoe").passwordHash("$2a$10$hashed").build();
+        Login savedLogin = Login.builder().id(1L).username("johndoe").passwordHash(null).build();
         when(loginsRepository.save(any(Login.class))).thenReturn(savedLogin);
 
         Borrower savedBorrower = Borrower.builder()
@@ -262,7 +241,7 @@ class CreateBorrowerServiceTest {
 
         CreateBorrowerResponseDTO result = createBorrowerService.create(dto);
 
-        assertNotNull(result);
+    assertNotNull(result);
         verify(activationEmailService, never()).sendActivationEmail(any(), any());
     }
 
@@ -270,10 +249,8 @@ class CreateBorrowerServiceTest {
     @DisplayName("shouldDisableLoginByDefault")
     void shouldDisableLoginByDefault() {
         when(loginsRepository.existsByUsername("johndoe")).thenReturn(false);
-        when(passwordGenerator.generate()).thenReturn("GenPass123!");
-        when(passwordEncoder.encode("GenPass123!")).thenReturn("$2a$10$hashed");
 
-        Login savedLogin = Login.builder().id(1L).username("johndoe").passwordHash("$2a$10$hashed").build();
+        Login savedLogin = Login.builder().id(1L).username("johndoe").passwordHash(null).build();
         when(loginsRepository.save(any(Login.class))).thenReturn(savedLogin);
 
         Borrower savedBorrower = Borrower.builder().id(1L).login_id(1L).build();
@@ -281,41 +258,14 @@ class CreateBorrowerServiceTest {
 
         CreateBorrowerResponseDTO result = createBorrowerService.create(validDto);
 
-        assertFalse(result.getLoginEnabled());
+       assertFalse(result.getLoginEnabled());
+        assertNull(result.getPassword());
     }
 
     @Test
-    @DisplayName("shouldHashPasswordWithBCrypt")
-    void shouldHashPasswordWithBCrypt() {
+    @DisplayName("shouldReturnNullPasswordInResponse")
+    void shouldReturnNullPasswordInResponse() {
         when(loginsRepository.existsByUsername("johndoe")).thenReturn(false);
-        when(passwordGenerator.generate()).thenReturn("GenPass123!");
-        when(passwordEncoder.encode("GenPass123!")).thenReturn("$2a$10$hashed");
-
-        Login savedLogin = Login.builder().id(1L).build();
-        when(loginsRepository.save(any(Login.class))).thenReturn(savedLogin);
-
-        Borrower savedBorrower = Borrower.builder().id(1L).build();
-        when(borrowerRepository.save(any(Borrower.class))).thenReturn(savedBorrower);
-
-        ActivationTokenDTO tokenDto = ActivationTokenDTO.builder()
-                .id(1L)
-                .loginId(1L)
-                .token("token123")
-                .type("ACTIVATION")
-                .build();
-        when(activationTokenService.generateToken(1L)).thenReturn(tokenDto);
-
-        createBorrowerService.create(validDto);
-
-        verify(passwordEncoder).encode("GenPass123!");
-    }
-
-    @Test
-    @DisplayName("shouldReturnRawPasswordInResponse")
-    void shouldReturnRawPasswordInResponse() {
-        when(loginsRepository.existsByUsername("johndoe")).thenReturn(false);
-        when(passwordGenerator.generate()).thenReturn("GenPass123!");
-        when(passwordEncoder.encode("GenPass123!")).thenReturn("$2a$10$hashed");
 
         Login savedLogin = Login.builder().id(1L).build();
         when(loginsRepository.save(any(Login.class))).thenReturn(savedLogin);
@@ -333,7 +283,7 @@ class CreateBorrowerServiceTest {
 
         CreateBorrowerResponseDTO result = createBorrowerService.create(validDto);
 
-        assertEquals("GenPass123!", result.getPassword());
+      assertNull(result.getPassword());
     }
 
     @Test
@@ -411,10 +361,8 @@ class CreateBorrowerServiceTest {
     @DisplayName("shouldRollbackOnTransactionFailure")
     void shouldRollbackOnTransactionFailure() {
         when(loginsRepository.existsByUsername("johndoe")).thenReturn(false);
-        when(passwordGenerator.generate()).thenReturn("GenPass123!");
-        when(passwordEncoder.encode("GenPass123!")).thenReturn("$2a$10$hashed");
 
-        Login savedLogin = Login.builder().id(1L).username("johndoe").passwordHash("$2a$10$hashed").build();
+        Login savedLogin = Login.builder().id(1L).username("johndoe").passwordHash(null).build();
         when(loginsRepository.save(any(Login.class))).thenReturn(savedLogin);
         when(borrowerRepository.save(any(Borrower.class))).thenThrow(new RuntimeException("DB error"));
 
