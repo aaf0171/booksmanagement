@@ -7,13 +7,19 @@ import com.books.exception.LoginConflictException;
 import com.books.exception.LoginValidationException;
 import com.books.model.Borrower;
 import com.books.model.Login;
+import com.books.model.Role;
+import com.books.model.RoleType;
 import com.books.repository.BorrowerRepository;
 import com.books.repository.LoginsRepository;
+import com.books.repository.RoleRepository;
 import com.books.service.ActivationTokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Optional;
+import java.util.HashSet;
+import java.util.Set;
 
 import java.time.LocalDateTime;
 
@@ -24,6 +30,7 @@ public class CreateBorrowerService {
 
     private final BorrowerRepository borrowerRepository;
     private final LoginsRepository loginsRepository;
+    private final RoleRepository roleRepository;
     private final ActivationTokenService activationTokenService;
     private final ActivationEmailService activationEmailService;
 
@@ -35,11 +42,16 @@ public class CreateBorrowerService {
             throw new LoginConflictException(dto.getUsername());
         }
 
+        Optional<Role> role = roleRepository.findByName(RoleType.BORROWER.name());
+        Set<Role> roles = new HashSet<>();
+        role.ifPresent(roles::add);
+
         Login login = Login.builder()
                 .username(dto.getUsername())
                 .passwordHash(null)
                 .enabled(false)
                 .createdAt(LocalDateTime.now())
+                .roles(roles)
                 .build();
 
         Login savedLogin = loginsRepository.save(login);

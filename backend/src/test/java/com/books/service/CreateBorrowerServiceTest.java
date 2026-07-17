@@ -9,6 +9,7 @@ import com.books.model.Borrower;
 import com.books.model.Login;
 import com.books.repository.BorrowerRepository;
 import com.books.repository.LoginsRepository;
+import com.books.repository.RoleRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,9 @@ class CreateBorrowerServiceTest {
 
     @Mock
     private LoginsRepository loginsRepository;
+
+    @Mock
+    private RoleRepository roleRepository;
 
     @Mock
     private ActivationTokenService activationTokenService;
