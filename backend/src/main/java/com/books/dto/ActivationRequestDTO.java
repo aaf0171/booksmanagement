@@ -13,4 +13,6 @@ import lombok.NoArgsConstructor;
 public class ActivationRequestDTO {
     @NotBlank(message = "Token is required")
     private String token;
+    private String password;
+    private String confirmPassword;
 }

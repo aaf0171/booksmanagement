@@ -358,8 +358,14 @@ class AuthControllerIntegrationTest {
         String[] tokenAndHash = generateActivationToken(disabledLogin.getId());
         String plaintextToken = tokenAndHash[0];
 
+        String password = "passWorD123!";
+        String confirmPassword = "passWorD123!";
+
         Map<String, String> body = new HashMap<>();
         body.put("token", plaintextToken);
+        body.put("password", password);
+        body.put("confirmPassword", confirmPassword);
+
 
         mockMvc.perform(post("/api/auth/activate")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -371,8 +377,14 @@ class AuthControllerIntegrationTest {
     @Test
     @DisplayName("POST_activate_invalid_token_returns_400")
     void POST_activate_invalid_token_returns_400() throws Exception {
+
+        String password = "passWorD123!";
+        String confirmPassword = "passWorD123!";
+
         Map<String, String> body = new HashMap<>();
         body.put("token", "nonexistent-token-value-xyz");
+        body.put("password", password);
+        body.put("confirmPassword", confirmPassword);
 
         mockMvc.perform(post("/api/auth/activate")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -450,8 +462,13 @@ class AuthControllerIntegrationTest {
 
         assertFalse(disabledLogin.getEnabled());
 
+        String password = "passWorD123!";
+        String confirmPassword = "passWorD123!";
+
         Map<String, String> body = new HashMap<>();
         body.put("token", plaintextToken);
+        body.put("password", password);
+        body.put("confirmPassword", confirmPassword);
 
         mockMvc.perform(post("/api/auth/activate")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -478,8 +495,13 @@ class AuthControllerIntegrationTest {
         String plaintextToken = tokenAndHash[0];
         String tokenHash = tokenAndHash[1];
 
+        String password = "passWorD123!";
+        String confirmPassword = "passWorD123!";
+
         Map<String, String> body = new HashMap<>();
         body.put("token", plaintextToken);
+        body.put("password", password);
+        body.put("confirmPassword", confirmPassword);
 
         mockMvc.perform(post("/api/auth/activate")
                         .contentType(MediaType.APPLICATION_JSON)

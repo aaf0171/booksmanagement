@@ -233,7 +233,7 @@ class AuthServiceTest {
         when(activationTokenService.findValidToken("valid-token")).thenReturn(Optional.of(activationToken));
         when(loginsRepository.findById(1L)).thenReturn(Optional.of(activeLogin));
 
-        assertDoesNotThrow(() -> authService.activate("valid-token"));
+        assertDoesNotThrow(() -> authService.activate("valid-token", "passWord123", "passWord123"));
     }
 
     @Test
@@ -262,7 +262,7 @@ class AuthServiceTest {
         when(activationTokenService.findValidToken("valid-token")).thenReturn(Optional.of(activationToken));
         when(loginsRepository.findById(1L)).thenReturn(Optional.of(disabledLogin));
 
-        authService.activate("valid-token");
+        authService.activate("valid-token", "passWord123", "passWord123");
 
         assertTrue(disabledLogin.getEnabled());
         verify(loginsRepository).save(disabledLogin);
@@ -284,7 +284,7 @@ class AuthServiceTest {
         when(activationTokenService.findValidToken("valid-token")).thenReturn(Optional.of(activationToken));
         when(loginsRepository.findById(1L)).thenReturn(Optional.of(activeLogin));
 
-        authService.activate("valid-token");
+        authService.activate("valid-token", "passWord123", "passWord123");
 
         verify(activationTokenService).markTokenAsUsed(1L);
     }
@@ -294,7 +294,8 @@ class AuthServiceTest {
     void shouldReturn400WhenTokenIsInvalid() {
         when(activationTokenService.findValidToken("invalid-token")).thenReturn(Optional.empty());
 
-        assertThrows(ActivationTokenException.class, () -> authService.activate("invalid-token"));
+        assertThrows(ActivationTokenException.class, 
+            () -> authService.activate("invalid-token", "passWord123", "passWord123"));
     }
 
     @Test
@@ -302,7 +303,8 @@ class AuthServiceTest {
     void shouldReturn400WhenTokenIsExpired() {
         when(activationTokenService.findValidToken("expired-token")).thenReturn(Optional.empty());
 
-        assertThrows(ActivationTokenException.class, () -> authService.activate("expired-token"));
+        assertThrows(ActivationTokenException.class, 
+            () -> authService.activate("expired-token", "passWord123", "passWord123"));
     }
 
     @Test
@@ -310,6 +312,47 @@ class AuthServiceTest {
     void shouldReturn400WhenTokenIsAlreadyUsed() {
         when(activationTokenService.findValidToken("used-token")).thenReturn(Optional.empty());
 
-        assertThrows(ActivationTokenException.class, () -> authService.activate("used-token"));
+        assertThrows(ActivationTokenException.class, 
+            () -> authService.activate("used-token", "passWord123", "passWord123"));
+    }
+
+    @Test
+    @DisplayName("shouldThrowWhenPasswordsDoNotMatch")
+    void shouldThrowWhenPasswordsDoNotMatch() {
+        ActivationToken activationToken = ActivationToken.builder()
+                .id(1L)
+                .loginId(1L)
+                .type("ACTIVATION")
+                .tokenHash("tokenhash123")
+                .expiresAt(LocalDateTime.now().plusHours(1))
+                .usedAt(null)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        when(activationTokenService.findValidToken("valid-token")).thenReturn(Optional.of(activationToken));
+        when(loginsRepository.findById(1L)).thenReturn(Optional.of(activeLogin));
+
+        assertThrows(ActivationTokenException.class, () -> authService.activate("valid-token", "password1", "password2"));
+    }
+
+    @Test
+    @DisplayName("shouldActivateAccountWithMatchingPasswords")
+    void shouldActivateAccountWithMatchingPasswords() {
+        ActivationToken activationToken = ActivationToken.builder()
+                .id(1L)
+                .loginId(1L)
+                .type("ACTIVATION")
+                .tokenHash("tokenhash123")
+                .expiresAt(LocalDateTime.now().plusHours(1))
+                .usedAt(null)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        when(activationTokenService.findValidToken("valid-token")).thenReturn(Optional.of(activationToken));
+        when(loginsRepository.findById(1L)).thenReturn(Optional.of(activeLogin));
+        when(passwordEncoder.encode("mypassword")).thenReturn("encodedhash");
+
+        assertDoesNotThrow(() -> authService.activate("valid-token", "mypassword", "mypassword"));
+        verify(passwordEncoder).encode("mypassword");
     }
 }

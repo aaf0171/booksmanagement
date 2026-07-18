@@ -102,14 +102,22 @@ public class AuthService {
         refreshTokenService.revoke(refreshToken);
     }
 
-    public void activate(String token) {
+    public void activate(String token, String password, String confirmPassword) {
         ActivationToken activationToken = activationTokenService.findValidToken(token)
                 .orElseThrow(() -> new ActivationTokenException("Invalid or expired activation token"));
 
         Login login = loginsRepository.findById(activationToken.getLoginId())
-                .orElseThrow(() -> new ActivationTokenException("Invalid or expired activation token"));
+                .orElseThrow(() -> new ActivationTokenException("Invalid or expired activation token 2"));
 
+        if (!password.equals(confirmPassword)) {
+            throw new ActivationTokenException("Passwords do not match");
+        }
+
+        String hashedPassword = passwordEncoder.encode(password);
+
+        login.setPasswordHash(hashedPassword);
         login.setEnabled(true);
+        
         loginsRepository.save(login);
 
         activationTokenService.markTokenAsUsed(activationToken.getId());

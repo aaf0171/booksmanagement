@@ -101,7 +101,7 @@ public class AuthController {
     })
     @PostMapping("/activate")
     public ResponseEntity<ActivationResponseDTO> activate(@Valid @RequestBody ActivationRequestDTO request) {
-        authService.activate(request.getToken());
+        authService.activate(request.getToken(), request.getPassword(), request.getConfirmPassword());
         ActivationResponseDTO response = ActivationResponseDTO.builder()
                 .message("Account activated successfully")
                 .build();

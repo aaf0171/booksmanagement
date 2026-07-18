@@ -13,7 +13,9 @@ http:
     type: json
     data: |-
       {
-           "token": "PjhEhZRBf+Uw2OJ4foiYj/4Y1z6mYvVcukveI9E0+74="
+           "token": "tDcbHkBzwHd6pf92az99mFcl8oiCHHZa+rOH6gzRvps=",
+           "password" : "BonJour123!",
+           "confirmPassword" : "BonJour123!"
       }
   auth: inherit
 
