@@ -57,7 +57,7 @@ public class CreateBorrowerService {
         Login savedLogin = loginsRepository.save(login);
 
         Borrower borrower = Borrower.builder()
-                .login_id(savedLogin.getId())
+                .loginId(savedLogin.getId())
                 .firstname(dto.getFirstname())
                 .lastname(dto.getLastname())
                 .email(dto.getEmail())

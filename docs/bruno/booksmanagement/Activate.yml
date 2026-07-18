@@ -13,7 +13,7 @@ http:
     type: json
     data: |-
       {
-           "token": "tDcbHkBzwHd6pf92az99mFcl8oiCHHZa+rOH6gzRvps=",
+           "token": "lm+dfPU4BSsbn+ZIQq34hkxTqxeEMwxezpJb9/lUN38=",
            "password" : "BonJour123!",
            "confirmPassword" : "BonJour123!"
       }

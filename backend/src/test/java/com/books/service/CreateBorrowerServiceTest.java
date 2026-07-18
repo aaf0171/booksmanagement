@@ -63,7 +63,7 @@ class CreateBorrowerServiceTest {
         Login savedLogin = Login.builder().id(1L).username("johndoe").passwordHash(null).build();
         when(loginsRepository.save(any(Login.class))).thenReturn(savedLogin);
 
-        Borrower savedBorrower = Borrower.builder().id(1L).login_id(1L).firstname("John").lastname("Doe").build();
+        Borrower savedBorrower = Borrower.builder().id(1L).loginId(1L).firstname("John").lastname("Doe").build();
         when(borrowerRepository.save(any(Borrower.class))).thenReturn(savedBorrower);
 
         ActivationTokenDTO tokenDto = ActivationTokenDTO.builder()
@@ -95,7 +95,7 @@ class CreateBorrowerServiceTest {
 
         Borrower savedBorrower = Borrower.builder()
                 .id(1L)
-                .login_id(1L)
+                .loginId(1L)
                 .firstname("John")
                 .lastname("Doe")
                 .email("john@example.com")
@@ -153,7 +153,7 @@ class CreateBorrowerServiceTest {
 
         Borrower savedBorrower = Borrower.builder()
                 .id(1L)
-                .login_id(1L)
+                .loginId(1L)
                 .firstname("John")
                 .lastname("Doe")
                 .email("john@example.com")
@@ -186,7 +186,7 @@ class CreateBorrowerServiceTest {
 
         Borrower savedBorrower = Borrower.builder()
                 .id(1L)
-                .login_id(1L)
+                .loginId(1L)
                 .firstname("John")
                 .lastname("Doe")
                 .email("john@example.com")
@@ -228,7 +228,7 @@ class CreateBorrowerServiceTest {
 
         Borrower savedBorrower = Borrower.builder()
                 .id(1L)
-                .login_id(1L)
+                .loginId(1L)
                 .firstname("John")
                 .lastname("Doe")
                 .email(null)
@@ -257,7 +257,7 @@ class CreateBorrowerServiceTest {
         Login savedLogin = Login.builder().id(1L).username("johndoe").passwordHash(null).build();
         when(loginsRepository.save(any(Login.class))).thenReturn(savedLogin);
 
-        Borrower savedBorrower = Borrower.builder().id(1L).login_id(1L).build();
+        Borrower savedBorrower = Borrower.builder().id(1L).loginId(1L).build();
         when(borrowerRepository.save(any(Borrower.class))).thenReturn(savedBorrower);
 
         CreateBorrowerResponseDTO result = createBorrowerService.create(validDto);

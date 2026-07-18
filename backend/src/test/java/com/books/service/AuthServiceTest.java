@@ -1,12 +1,15 @@
 package com.books.service;
 
+import com.books.dto.ActivationResponseDTO;
 import com.books.dto.LoginRequestDTO;
 import com.books.dto.LoginResponseDTO;
 import com.books.dto.RefreshRequestDTO;
 import com.books.dto.RefreshResponseDTO;
+import com.books.enums.ActivationStatus;
 import com.books.exception.ActivationTokenException;
 import com.books.exception.LoginNotFoundException;
 import com.books.exception.LoginValidationException;
+import com.books.exception.PasswordMismatchException;
 import com.books.model.ActivationToken;
 import com.books.model.Login;
 import com.books.model.Role;
@@ -76,6 +79,181 @@ class AuthServiceTest {
                 .createdAt(LocalDateTime.now())
                 .build();
     }
+
+    // === Application service tests ===
+
+    @Test
+    @DisplayName("shouldActivateAccountSuccessfullyAndReturnSuccess")
+    void shouldActivateAccountSuccessfullyAndReturnSuccess() {
+        ActivationToken activationToken = ActivationToken.builder()
+                .id(1L)
+                .loginId(1L)
+                .type("ACTIVATION")
+                .tokenHash("tokenhash123")
+                .expiresAt(LocalDateTime.now().plusHours(1))
+                .usedAt(null)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        ActivationResponseDTO validResult = new ActivationResponseDTO(ActivationStatus.SUCCESS, "Token is valid", null);
+        when(activationTokenService.findTokenResult("valid-token")).thenReturn(validResult);
+        when(activationTokenService.findValidToken("valid-token")).thenReturn(Optional.of(activationToken));
+        when(loginsRepository.findById(1L)).thenReturn(Optional.of(activeLogin));
+        when(passwordEncoder.encode("passWord123")).thenReturn("encodedhash");
+
+        ActivationResponseDTO result = authService.activate("valid-token", "passWord123", "passWord123");
+
+        assertEquals(ActivationStatus.SUCCESS, result.status());
+        assertEquals("Account activated successfully", result.message());
+        assertNull(result.email());
+        verify(loginsRepository).save(activeLogin);
+        verify(activationTokenService).markTokenAsUsed(1L);
+    }
+
+    @Test
+    @DisplayName("shouldSetLoginEnabledToTrueOnActivation")
+    void shouldSetLoginEnabledToTrueOnActivation() {
+        Login disabledLogin = Login.builder()
+                .id(1L)
+                .username("jc.dusse")
+                .passwordHash("$2a$10$hashedpassword")
+                .enabled(false)
+                .roles(Set.of(Role.builder().id(1L).name("BORROWER").build()))
+                .lastLogin(null)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        ActivationToken activationToken = ActivationToken.builder()
+                .id(1L)
+                .loginId(1L)
+                .type("ACTIVATION")
+                .tokenHash("tokenhash123")
+                .expiresAt(LocalDateTime.now().plusHours(1))
+                .usedAt(null)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        ActivationResponseDTO validResult = new ActivationResponseDTO(ActivationStatus.SUCCESS, "Token is valid", null);
+        when(activationTokenService.findTokenResult("valid-token")).thenReturn(validResult);
+        when(activationTokenService.findValidToken("valid-token")).thenReturn(Optional.of(activationToken));
+        when(loginsRepository.findById(1L)).thenReturn(Optional.of(disabledLogin));
+        when(passwordEncoder.encode("passWord123")).thenReturn("encodedhash");
+
+        authService.activate("valid-token", "passWord123", "passWord123");
+
+        assertTrue(disabledLogin.getEnabled());
+        verify(loginsRepository).save(disabledLogin);
+    }
+
+    @Test
+    @DisplayName("shouldMarkTokenAsUsedAfterActivation")
+    void shouldMarkTokenAsUsedAfterActivation() {
+        ActivationToken activationToken = ActivationToken.builder()
+                .id(1L)
+                .loginId(1L)
+                .type("ACTIVATION")
+                .tokenHash("tokenhash123")
+                .expiresAt(LocalDateTime.now().plusHours(1))
+                .usedAt(null)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        ActivationResponseDTO validResult = new ActivationResponseDTO(ActivationStatus.SUCCESS, "Token is valid", null);
+        when(activationTokenService.findTokenResult("valid-token")).thenReturn(validResult);
+        when(activationTokenService.findValidToken("valid-token")).thenReturn(Optional.of(activationToken));
+        when(loginsRepository.findById(1L)).thenReturn(Optional.of(activeLogin));
+        when(passwordEncoder.encode("passWord123")).thenReturn("encodedhash");
+
+        authService.activate("valid-token", "passWord123", "passWord123");
+
+        verify(activationTokenService).markTokenAsUsed(1L);
+    }
+
+    @Test
+    @DisplayName("shouldReturnTokenExpiredWithEmailWhenTokenIsExpired")
+    void shouldReturnTokenExpiredWithEmailWhenTokenIsExpired() {
+        Login loginWithEmail = Login.builder()
+                .id(1L)
+                .username("utilisateur@example.com")
+                .passwordHash("$2a$10$hash")
+                .enabled(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        ActivationResponseDTO expiredResult = new ActivationResponseDTO(ActivationStatus.TOKEN_EXPIRED, null, "utilisateur@example.com");
+        when(activationTokenService.findTokenResult("expired-token")).thenReturn(expiredResult);
+
+        ActivationResponseDTO result = authService.activate("expired-token", null, null);
+
+        assertEquals(ActivationStatus.TOKEN_EXPIRED, result.status());
+        assertEquals("utilisateur@example.com", result.email());
+        verify(loginsRepository, never()).save(any());
+        verify(activationTokenService, never()).markTokenAsUsed(anyLong());
+    }
+
+    @Test
+    @DisplayName("shouldReturnTokenInvalidWithoutEmailWhenTokenDoesNotExist")
+    void shouldReturnTokenInvalidWithoutEmailWhenTokenDoesNotExist() {
+        ActivationResponseDTO invalidResult = new ActivationResponseDTO(ActivationStatus.TOKEN_INVALID, null, null);
+        when(activationTokenService.findTokenResult("invalid-token")).thenReturn(invalidResult);
+
+        ActivationResponseDTO result = authService.activate("invalid-token", "passWord123", "passWord123");
+
+        assertEquals(ActivationStatus.TOKEN_INVALID, result.status());
+        assertNull(result.email());
+        verify(loginsRepository, never()).save(any());
+        verify(activationTokenService, never()).markTokenAsUsed(anyLong());
+    }
+
+    @Test
+    @DisplayName("shouldReturnAlreadyActivatedWhenTokenIsUsedAndLoginEnabled")
+    void shouldReturnAlreadyActivatedWhenTokenIsUsedAndLoginEnabled() {
+        ActivationResponseDTO alreadyActivatedResult = new ActivationResponseDTO(ActivationStatus.ALREADY_ACTIVATED, null, null);
+        when(activationTokenService.findTokenResult("used-token")).thenReturn(alreadyActivatedResult);
+
+        ActivationResponseDTO result = authService.activate("used-token", null, null);
+
+        assertEquals(ActivationStatus.ALREADY_ACTIVATED, result.status());
+        assertNull(result.email());
+        verify(loginsRepository, never()).save(any());
+        verify(activationTokenService, never()).markTokenAsUsed(anyLong());
+    }
+
+    @Test
+    @DisplayName("shouldReturnTokenInvalidWhenTokenIsUsedAndLoginDisabled")
+    void shouldReturnTokenInvalidWhenTokenIsUsedAndLoginDisabled() {
+        ActivationResponseDTO invalidResult = new ActivationResponseDTO(ActivationStatus.TOKEN_INVALID, null, null);
+        when(activationTokenService.findTokenResult("used-token")).thenReturn(invalidResult);
+
+        ActivationResponseDTO result = authService.activate("used-token", null, null);
+
+        assertEquals(ActivationStatus.TOKEN_INVALID, result.status());
+        assertNull(result.email());
+    }
+
+    @Test
+    @DisplayName("shouldThrowOnlyForTechnicalErrors")
+    void shouldThrowOnlyForTechnicalErrors() {
+        ActivationToken activationToken = ActivationToken.builder()
+                .id(1L)
+                .loginId(999L)
+                .type("ACTIVATION")
+                .tokenHash("tokenhash123")
+                .expiresAt(LocalDateTime.now().plusHours(1))
+                .usedAt(null)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        ActivationResponseDTO validResult = new ActivationResponseDTO(ActivationStatus.SUCCESS, "Token is valid", null);
+        when(activationTokenService.findTokenResult("valid-token")).thenReturn(validResult);
+        when(activationTokenService.findValidToken("valid-token")).thenReturn(Optional.of(activationToken));
+        when(loginsRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThrows(ActivationTokenException.class,
+                () -> authService.activate("valid-token", "passWord123", "passWord123"));
+    }
+
+    // === Legacy tests (preserve existing functionality) ===
 
     @Test
     @DisplayName("shouldLoginSuccessfullyAndReturnBothTokens")
@@ -218,105 +396,6 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("shouldActivateAccountWithValidToken")
-    void shouldActivateAccountWithValidToken() {
-        ActivationToken activationToken = ActivationToken.builder()
-                .id(1L)
-                .loginId(1L)
-                .type("ACTIVATION")
-                .tokenHash("tokenhash123")
-                .expiresAt(LocalDateTime.now().plusHours(1))
-                .usedAt(null)
-                .createdAt(LocalDateTime.now())
-                .build();
-
-        when(activationTokenService.findValidToken("valid-token")).thenReturn(Optional.of(activationToken));
-        when(loginsRepository.findById(1L)).thenReturn(Optional.of(activeLogin));
-
-        assertDoesNotThrow(() -> authService.activate("valid-token", "passWord123", "passWord123"));
-    }
-
-    @Test
-    @DisplayName("shouldSetLoginEnabledToTrue")
-    void shouldSetLoginEnabledToTrue() {
-        Login disabledLogin = Login.builder()
-                .id(1L)
-                .username("jc.dusse")
-                .passwordHash("$2a$10$hashedpassword")
-                .enabled(false)
-                .roles(Set.of(Role.builder().id(1L).name("BORROWER").build()))
-                .lastLogin(null)
-                .createdAt(LocalDateTime.now())
-                .build();
-
-        ActivationToken activationToken = ActivationToken.builder()
-                .id(1L)
-                .loginId(1L)
-                .type("ACTIVATION")
-                .tokenHash("tokenhash123")
-                .expiresAt(LocalDateTime.now().plusHours(1))
-                .usedAt(null)
-                .createdAt(LocalDateTime.now())
-                .build();
-
-        when(activationTokenService.findValidToken("valid-token")).thenReturn(Optional.of(activationToken));
-        when(loginsRepository.findById(1L)).thenReturn(Optional.of(disabledLogin));
-
-        authService.activate("valid-token", "passWord123", "passWord123");
-
-        assertTrue(disabledLogin.getEnabled());
-        verify(loginsRepository).save(disabledLogin);
-    }
-
-    @Test
-    @DisplayName("shouldMarkTokenAsUsedAfterActivation")
-    void shouldMarkTokenAsUsedAfterActivation() {
-        ActivationToken activationToken = ActivationToken.builder()
-                .id(1L)
-                .loginId(1L)
-                .type("ACTIVATION")
-                .tokenHash("tokenhash123")
-                .expiresAt(LocalDateTime.now().plusHours(1))
-                .usedAt(null)
-                .createdAt(LocalDateTime.now())
-                .build();
-
-        when(activationTokenService.findValidToken("valid-token")).thenReturn(Optional.of(activationToken));
-        when(loginsRepository.findById(1L)).thenReturn(Optional.of(activeLogin));
-
-        authService.activate("valid-token", "passWord123", "passWord123");
-
-        verify(activationTokenService).markTokenAsUsed(1L);
-    }
-
-    @Test
-    @DisplayName("shouldReturn400WhenTokenIsInvalid")
-    void shouldReturn400WhenTokenIsInvalid() {
-        when(activationTokenService.findValidToken("invalid-token")).thenReturn(Optional.empty());
-
-        assertThrows(ActivationTokenException.class, 
-            () -> authService.activate("invalid-token", "passWord123", "passWord123"));
-    }
-
-    @Test
-    @DisplayName("shouldReturn400WhenTokenIsExpired")
-    void shouldReturn400WhenTokenIsExpired() {
-        when(activationTokenService.findValidToken("expired-token")).thenReturn(Optional.empty());
-
-        assertThrows(ActivationTokenException.class, 
-            () -> authService.activate("expired-token", "passWord123", "passWord123"));
-    }
-
-    @Test
-    @DisplayName("shouldReturn400WhenTokenIsAlreadyUsed")
-    void shouldReturn400WhenTokenIsAlreadyUsed() {
-        when(activationTokenService.findValidToken("used-token")).thenReturn(Optional.empty());
-
-        assertThrows(ActivationTokenException.class, 
-            () -> authService.activate("used-token", "passWord123", "passWord123"));
-    }
-
-    @Test
     @DisplayName("shouldThrowWhenPasswordsDoNotMatch")
     void shouldThrowWhenPasswordsDoNotMatch() {
         ActivationToken activationToken = ActivationToken.builder()
@@ -329,10 +408,12 @@ class AuthServiceTest {
                 .createdAt(LocalDateTime.now())
                 .build();
 
+        ActivationResponseDTO validResult = new ActivationResponseDTO(ActivationStatus.SUCCESS, "Token is valid", null);
+        when(activationTokenService.findTokenResult("valid-token")).thenReturn(validResult);
         when(activationTokenService.findValidToken("valid-token")).thenReturn(Optional.of(activationToken));
         when(loginsRepository.findById(1L)).thenReturn(Optional.of(activeLogin));
 
-        assertThrows(ActivationTokenException.class, () -> authService.activate("valid-token", "password1", "password2"));
+        assertThrows(PasswordMismatchException.class, () -> authService.activate("valid-token", "password1", "password2"));
     }
 
     @Test
@@ -348,11 +429,16 @@ class AuthServiceTest {
                 .createdAt(LocalDateTime.now())
                 .build();
 
+        ActivationResponseDTO validResult = new ActivationResponseDTO(ActivationStatus.SUCCESS, "Token is valid", null);
+        when(activationTokenService.findTokenResult("valid-token")).thenReturn(validResult);
         when(activationTokenService.findValidToken("valid-token")).thenReturn(Optional.of(activationToken));
         when(loginsRepository.findById(1L)).thenReturn(Optional.of(activeLogin));
         when(passwordEncoder.encode("mypassword")).thenReturn("encodedhash");
 
-        assertDoesNotThrow(() -> authService.activate("valid-token", "mypassword", "mypassword"));
+        ActivationResponseDTO result = authService.activate("valid-token", "mypassword", "mypassword");
+
+        assertEquals(ActivationStatus.SUCCESS, result.status());
+        assertEquals("Account activated successfully", result.message());
         verify(passwordEncoder).encode("mypassword");
     }
 }

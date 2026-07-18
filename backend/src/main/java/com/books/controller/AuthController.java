@@ -1,6 +1,7 @@
 package com.books.controller;
 
 import com.books.dto.*;
+import com.books.enums.ActivationStatus;
 import com.books.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -96,15 +97,28 @@ public class AuthController {
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Account activated successfully",
             content = @Content(schema = @Schema(implementation = ActivationResponseDTO.class))),
-        @ApiResponse(responseCode = "400", description = "Invalid or expired activation token",
+        @ApiResponse(responseCode = "200", description = "Account already activated",
+            content = @Content(schema = @Schema(implementation = ActivationResponseDTO.class))),
+        @ApiResponse(responseCode = "410", description = "Activation token expired",
+            content = @Content(schema = @Schema(implementation = ActivationResponseDTO.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid activation token",
+            content = @Content(schema = @Schema(implementation = ActivationResponseDTO.class))),
+        @ApiResponse(responseCode = "422", description = "Passwords do not match",
             content = @Content(schema = @Schema(implementation = Map.class)))
     })
     @PostMapping("/activate")
     public ResponseEntity<ActivationResponseDTO> activate(@Valid @RequestBody ActivationRequestDTO request) {
-        authService.activate(request.getToken(), request.getPassword(), request.getConfirmPassword());
-        ActivationResponseDTO response = ActivationResponseDTO.builder()
-                .message("Account activated successfully")
-                .build();
-        return ResponseEntity.ok(response);
+        ActivationResponseDTO response = authService.activate(request.getToken(), request.getPassword(), request.getConfirmPassword());
+        int status = mapStatusToHttpStatus(response.status());
+        return ResponseEntity.status(status).body(response);
+    }
+
+    private int mapStatusToHttpStatus(ActivationStatus status) {
+        return switch (status) {
+            case SUCCESS -> 200;
+            case ALREADY_ACTIVATED -> 200;
+            case TOKEN_EXPIRED -> 410;
+            case TOKEN_INVALID -> 400;
+        };
     }
 }

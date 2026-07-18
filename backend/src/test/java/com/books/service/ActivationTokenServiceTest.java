@@ -1,6 +1,8 @@
 package com.books.service;
 
 import com.books.dto.ActivationTokenDTO;
+import com.books.dto.ActivationResponseDTO;
+import com.books.enums.ActivationStatus;
 import com.books.exception.LoginNotFoundException;
 import com.books.exception.LoginValidationException;
 import com.books.model.ActivationToken;
@@ -68,6 +70,194 @@ class ActivationTokenServiceTest {
                 .createdAt(LocalDateTime.now())
                 .build();
     }
+
+    // === Domain unit tests for findTokenResult ===
+
+    @Test
+    @DisplayName("shouldReturnSuccessStatusForValidToken")
+    void shouldReturnSuccessStatusForValidToken() {
+        String plaintextToken = "validToken123";
+        String tokenHash = hashToken(plaintextToken);
+
+        ActivationToken validToken = ActivationToken.builder()
+                .id(1L)
+                .loginId(1L)
+                .type("ACTIVATION")
+                .tokenHash(tokenHash)
+                .expiresAt(LocalDateTime.now().plusHours(1))
+                .usedAt(null)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        when(activationTokenRepository.findByTokenHash(tokenHash)).thenReturn(Optional.of(validToken));
+
+        ActivationResponseDTO result = activationTokenService.findTokenResult(plaintextToken);
+
+        assertEquals(ActivationStatus.SUCCESS, result.status());
+        assertNull(result.email());
+    }
+
+    @Test
+    @DisplayName("shouldReturnExpiredStatusForExpiredToken")
+    void shouldReturnExpiredStatusForExpiredToken() {
+        String plaintextToken = "expiredToken123";
+        String tokenHash = hashToken(plaintextToken);
+
+        ActivationToken expiredToken = ActivationToken.builder()
+                .id(1L)
+                .loginId(1L)
+                .type("ACTIVATION")
+                .tokenHash(tokenHash)
+                .expiresAt(LocalDateTime.now().minusHours(1))
+                .usedAt(null)
+                .createdAt(LocalDateTime.now().minusHours(2))
+                .build();
+
+        when(activationTokenRepository.findByTokenHash(tokenHash)).thenReturn(Optional.of(expiredToken));
+        when(loginsRepository.findById(1L)).thenReturn(Optional.of(activeLogin));
+
+        ActivationResponseDTO result = activationTokenService.findTokenResult(plaintextToken);
+
+        assertEquals(ActivationStatus.TOKEN_EXPIRED, result.status());
+    }
+
+    @Test
+    @DisplayName("shouldReturnInvalidStatusForUnknownToken")
+    void shouldReturnInvalidStatusForUnknownToken() {
+        String plaintextToken = "unknownToken123";
+        String tokenHash = hashToken(plaintextToken);
+
+        when(activationTokenRepository.findByTokenHash(tokenHash)).thenReturn(Optional.empty());
+
+        ActivationResponseDTO result = activationTokenService.findTokenResult(plaintextToken);
+
+        assertEquals(ActivationStatus.TOKEN_INVALID, result.status());
+        assertNull(result.email());
+    }
+
+    @Test
+    @DisplayName("shouldReturnAlreadyActivatedStatusForUsedTokenWithEnabledLogin")
+    void shouldReturnAlreadyActivatedStatusForUsedTokenWithEnabledLogin() {
+        String plaintextToken = "usedToken123";
+        String tokenHash = hashToken(plaintextToken);
+
+        ActivationToken usedToken = ActivationToken.builder()
+                .id(1L)
+                .loginId(1L)
+                .type("ACTIVATION")
+                .tokenHash(tokenHash)
+                .expiresAt(LocalDateTime.now().plusHours(1))
+                .usedAt(LocalDateTime.now())
+                .createdAt(LocalDateTime.now().minusHours(1))
+                .build();
+
+        when(activationTokenRepository.findByTokenHash(tokenHash)).thenReturn(Optional.of(usedToken));
+        when(loginsRepository.findById(1L)).thenReturn(Optional.of(activeLogin));
+
+        ActivationResponseDTO result = activationTokenService.findTokenResult(plaintextToken);
+
+        assertEquals(ActivationStatus.ALREADY_ACTIVATED, result.status());
+        assertNull(result.email());
+    }
+
+    @Test
+    @DisplayName("shouldReturnInvalidStatusForUsedTokenWithDisabledLogin")
+    void shouldReturnInvalidStatusForUsedTokenWithDisabledLogin() {
+        String plaintextToken = "usedToken123";
+        String tokenHash = hashToken(plaintextToken);
+
+        ActivationToken usedToken = ActivationToken.builder()
+                .id(1L)
+                .loginId(2L)
+                .type("ACTIVATION")
+                .tokenHash(tokenHash)
+                .expiresAt(LocalDateTime.now().plusHours(1))
+                .usedAt(LocalDateTime.now())
+                .createdAt(LocalDateTime.now().minusHours(1))
+                .build();
+
+        when(activationTokenRepository.findByTokenHash(tokenHash)).thenReturn(Optional.of(usedToken));
+        when(loginsRepository.findById(2L)).thenReturn(Optional.of(disabledLogin));
+
+        ActivationResponseDTO result = activationTokenService.findTokenResult(plaintextToken);
+
+        assertEquals(ActivationStatus.TOKEN_INVALID, result.status());
+        assertNull(result.email());
+    }
+
+    @Test
+    @DisplayName("shouldNotExposeEmailForInvalidToken")
+    void shouldNotExposeEmailForInvalidToken() {
+        String plaintextToken = "unknownToken123";
+        String tokenHash = hashToken(plaintextToken);
+
+        when(activationTokenRepository.findByTokenHash(tokenHash)).thenReturn(Optional.empty());
+
+        ActivationResponseDTO result = activationTokenService.findTokenResult(plaintextToken);
+
+        assertEquals(ActivationStatus.TOKEN_INVALID, result.status());
+        assertNull(result.email());
+    }
+
+    @Test
+    @DisplayName("shouldExposeEmailForExpiredTokenWithKnownUser")
+    void shouldExposeEmailForExpiredTokenWithKnownUser() {
+        String plaintextToken = "expiredToken123";
+        String tokenHash = hashToken(plaintextToken);
+
+        Login loginWithEmail = Login.builder()
+                .id(1L)
+                .username("utilisateur@example.com")
+                .passwordHash("$2a$10$hash")
+                .enabled(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        ActivationToken expiredToken = ActivationToken.builder()
+                .id(1L)
+                .loginId(1L)
+                .type("ACTIVATION")
+                .tokenHash(tokenHash)
+                .expiresAt(LocalDateTime.now().minusHours(1))
+                .usedAt(null)
+                .createdAt(LocalDateTime.now().minusHours(2))
+                .build();
+
+        when(activationTokenRepository.findByTokenHash(tokenHash)).thenReturn(Optional.of(expiredToken));
+        when(loginsRepository.findById(1L)).thenReturn(Optional.of(loginWithEmail));
+
+        ActivationResponseDTO result = activationTokenService.findTokenResult(plaintextToken);
+
+        assertEquals(ActivationStatus.TOKEN_EXPIRED, result.status());
+        assertEquals("utilisateur@example.com", result.email());
+    }
+
+    @Test
+    @DisplayName("shouldNotExposeEmailForExpiredTokenWithoutUser")
+    void shouldNotExposeEmailForExpiredTokenWithoutUser() {
+        String plaintextToken = "expiredToken123";
+        String tokenHash = hashToken(plaintextToken);
+
+        ActivationToken expiredToken = ActivationToken.builder()
+                .id(1L)
+                .loginId(1L)
+                .type("ACTIVATION")
+                .tokenHash(tokenHash)
+                .expiresAt(LocalDateTime.now().minusHours(1))
+                .usedAt(null)
+                .createdAt(LocalDateTime.now().minusHours(2))
+                .build();
+
+        when(activationTokenRepository.findByTokenHash(tokenHash)).thenReturn(Optional.of(expiredToken));
+        when(loginsRepository.findById(1L)).thenReturn(Optional.empty());
+
+        ActivationResponseDTO result = activationTokenService.findTokenResult(plaintextToken);
+
+        assertEquals(ActivationStatus.TOKEN_INVALID, result.status());
+        assertNull(result.email());
+    }
+
+    // === Legacy tests (preserve existing functionality) ===
 
     @Test
     @DisplayName("shouldGenerateToken")
@@ -138,7 +328,7 @@ class ActivationTokenServiceTest {
         verify(activationTokenRepository).save(any(ActivationToken.class));
     }
 
-  @Test
+    @Test
     @DisplayName("shouldReturnPlaintextTokenOnce")
     void shouldReturnPlaintextTokenOnce() throws NoSuchAlgorithmException {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -280,7 +470,7 @@ class ActivationTokenServiceTest {
         verify(activationTokenRepository).markAsUsed(1L);
     }
 
-   @Test
+    @Test
     @DisplayName("shouldHashTokenCorrectly")
     void shouldHashTokenCorrectly() throws NoSuchAlgorithmException {
         String plaintextToken = "testToken123";
@@ -297,7 +487,6 @@ class ActivationTokenServiceTest {
 
         java.util.Optional<ActivationToken> result = activationTokenService.findValidToken(plaintextToken);
 
-        // If hash is correct, the token would be found (but other validation checks may reject it)
         assertEquals(64, expectedHash.length());
         verify(activationTokenRepository).findByTokenHash(expectedHash);
     }
@@ -454,5 +643,19 @@ class ActivationTokenServiceTest {
         assertNotNull(result);
         assertEquals(13L, result.getId());
         verify(activationTokenRepository).invalidateUnusedTokens(eq(3L), any(LocalDateTime.class));
+    }
+
+    private String hashToken(String token) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(token.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder(64);
+            for (byte b : hashBytes) {
+                hexString.append(String.format("%02x", b));
+            }
+            return hexString.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

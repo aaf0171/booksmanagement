@@ -1,11 +1,14 @@
 package com.books.service;
 
+import com.books.dto.ActivationResponseDTO;
 import com.books.dto.LoginRequestDTO;
 import com.books.dto.LoginResponseDTO;
 import com.books.dto.RefreshRequestDTO;
 import com.books.dto.RefreshResponseDTO;
+import com.books.enums.ActivationStatus;
 import com.books.exception.ActivationTokenException;
 import com.books.exception.LoginNotFoundException;
+import com.books.exception.PasswordMismatchException;
 import com.books.model.ActivationToken;
 import com.books.model.Login;
 import com.books.repository.LoginsRepository;
@@ -102,24 +105,39 @@ public class AuthService {
         refreshTokenService.revoke(refreshToken);
     }
 
-    public void activate(String token, String password, String confirmPassword) {
-        ActivationToken activationToken = activationTokenService.findValidToken(token)
-                .orElseThrow(() -> new ActivationTokenException("Invalid or expired activation token"));
+    public ActivationResponseDTO activate(String token, String password, String confirmPassword) {
+        ActivationResponseDTO result = activationTokenService.findTokenResult(token);
 
-        Login login = loginsRepository.findById(activationToken.getLoginId())
-                .orElseThrow(() -> new ActivationTokenException("Invalid or expired activation token 2"));
-
-        if (!password.equals(confirmPassword)) {
-            throw new ActivationTokenException("Passwords do not match");
+        ActivationStatus status = result.status();
+        if (status == ActivationStatus.TOKEN_EXPIRED || status == ActivationStatus.TOKEN_INVALID || 
+            status == ActivationStatus.ALREADY_ACTIVATED) {
+            return result;
         }
 
-        String hashedPassword = passwordEncoder.encode(password);
+        if (status != ActivationStatus.SUCCESS) {
+            return new ActivationResponseDTO(ActivationStatus.TOKEN_INVALID, null, null);
+        }
 
-        login.setPasswordHash(hashedPassword);
+        ActivationToken activationToken = activationTokenService
+                                .findValidToken(token)
+                                .orElseThrow(() -> new ActivationTokenException("Invalid or expired activation token"));
+        Login login = loginsRepository
+                        .findById(activationToken.getLoginId())
+                        .orElseThrow(() -> new ActivationTokenException("Invalid or expired activation token"));
+
+        if (password != null && confirmPassword != null) {
+            if (!password.equals(confirmPassword)) {
+                throw new PasswordMismatchException("Passwords do not match");
+            }
+
+            String hashedPassword = passwordEncoder.encode(password);
+            login.setPasswordHash(hashedPassword);
+        }
+
         login.setEnabled(true);
-        
         loginsRepository.save(login);
-
         activationTokenService.markTokenAsUsed(activationToken.getId());
+
+        return new ActivationResponseDTO(ActivationStatus.SUCCESS, "Account activated successfully", null);
     }
 }

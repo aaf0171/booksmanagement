@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface BorrowerRepository extends JpaRepository<Borrower, Long> {
+    Borrower findByLoginId(Long loginId);
 }

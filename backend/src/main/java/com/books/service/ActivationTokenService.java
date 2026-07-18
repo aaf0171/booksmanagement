@@ -1,11 +1,15 @@
 package com.books.service;
 
 import com.books.dto.ActivationTokenDTO;
+import com.books.dto.ActivationResponseDTO;
+import com.books.enums.ActivationStatus;
 import com.books.exception.LoginNotFoundException;
 import com.books.exception.LoginValidationException;
 import com.books.model.ActivationToken;
+import com.books.model.Borrower;
 import com.books.model.Login;
 import com.books.repository.ActivationTokenRepository;
+import com.books.repository.BorrowerRepository;
 import com.books.repository.LoginsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +34,7 @@ public class ActivationTokenService {
 
     private final LoginsRepository loginsRepository;
     private final ActivationTokenRepository activationTokenRepository;
+    private final BorrowerRepository borrowerRepository;
 
     @Value("${activation.token.expiration-seconds:3600}")
     private long expirationSeconds;
@@ -128,6 +133,41 @@ public class ActivationTokenService {
     @Transactional
     public void markTokenAsUsed(Long tokenId) {
         activationTokenRepository.markAsUsed(tokenId);
+    }
+
+    @Transactional(readOnly = true)
+    public ActivationResponseDTO findTokenResult(String token) {
+        String tokenHash = hashToken(token);
+
+        Optional<ActivationToken> tokenOpt = activationTokenRepository.findByTokenHash(tokenHash);
+
+        if (tokenOpt.isEmpty()) {
+            return new ActivationResponseDTO(ActivationStatus.TOKEN_INVALID, null, null);
+        }
+
+        ActivationToken storedToken = tokenOpt.get();
+
+        if (storedToken.getUsedAt() != null) {
+            Optional<Login> loginOpt = loginsRepository.findById(storedToken.getLoginId());
+            if (loginOpt.isPresent() && loginOpt.get().getEnabled()) {
+                return new ActivationResponseDTO(ActivationStatus.ALREADY_ACTIVATED, null, null);
+            }
+            return new ActivationResponseDTO(ActivationStatus.TOKEN_INVALID, null, null);
+        }
+
+        if (storedToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            if (storedToken.getLoginId() != null) {
+                Optional<Login> loginOpt = loginsRepository.findById(storedToken.getLoginId());
+                if (loginOpt.isPresent()) {
+                    Borrower borrower = borrowerRepository.findByLoginId(storedToken.getLoginId());
+                    String email = borrower != null ? borrower.getEmail() : null;
+                    return new ActivationResponseDTO(ActivationStatus.TOKEN_EXPIRED, null, email);
+                }
+            }
+            return new ActivationResponseDTO(ActivationStatus.TOKEN_INVALID, null, null);
+        }
+
+        return new ActivationResponseDTO(ActivationStatus.SUCCESS, "Token is valid", null);
     }
 
     @Transactional(readOnly = true)

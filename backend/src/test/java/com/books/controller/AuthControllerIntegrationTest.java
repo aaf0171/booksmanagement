@@ -343,9 +343,11 @@ class AuthControllerIntegrationTest {
         return new String[]{response.getRefreshToken(), response.getAccessToken()};
     }
 
+    // === Activation controller integration tests ===
+
     @Test
-    @DisplayName("POST_activate_valid_token_returns_200")
-    void POST_activate_valid_token_returns_200() throws Exception {
+    @DisplayName("POST_activate_valid_token_returns_200_with_SUCCESS")
+    void POST_activate_valid_token_returns_200_with_SUCCESS() throws Exception {
         Role borrower = roleRepository.findByName("BORROWER").orElseGet(() -> roleRepository.save(Role.builder().name("BORROWER").build()));
         Login disabledLogin = Login.builder()
                 .username("activate-test-user")
@@ -366,83 +368,13 @@ class AuthControllerIntegrationTest {
         body.put("password", password);
         body.put("confirmPassword", confirmPassword);
 
-
         mockMvc.perform(post("/api/auth/activate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Account activated successfully"));
-    }
-
-    @Test
-    @DisplayName("POST_activate_invalid_token_returns_400")
-    void POST_activate_invalid_token_returns_400() throws Exception {
-
-        String password = "passWorD123!";
-        String confirmPassword = "passWorD123!";
-
-        Map<String, String> body = new HashMap<>();
-        body.put("token", "nonexistent-token-value-xyz");
-        body.put("password", password);
-        body.put("confirmPassword", confirmPassword);
-
-        mockMvc.perform(post("/api/auth/activate")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(body)))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("POST_activate_expired_token_returns_400")
-    void POST_activate_expired_token_returns_400() throws Exception {
-        Role borrower = roleRepository.findByName("BORROWER").orElseGet(() -> roleRepository.save(Role.builder().name("BORROWER").build()));
-        Login disabledLogin = Login.builder()
-                .username("expired-token-user")
-                .passwordHash("$2a$10$ZcX.L1QKtn4tMs.eCqQIBORsiWiv7bE3Exh3hnjeWWUHvmsCa3KRe")
-                .enabled(false)
-                .roles(Set.of(borrower))
-                .build();
-        disabledLogin = loginsRepository.save(disabledLogin);
-
-        String[] tokenAndHash = generateExpiredActivationToken(disabledLogin.getId());
-        String plaintextToken = tokenAndHash[0];
-
-        Map<String, String> body = new HashMap<>();
-        body.put("token", plaintextToken);
-
-        mockMvc.perform(post("/api/auth/activate")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(body)))
-                .andExpect(status().isBadRequest());
-    }
-
-     @Test
-    @DisplayName("POST_activate_used_token_returns_400")
-    void POST_activate_used_token_returns_400() throws Exception {
-        Role borrower = roleRepository.findByName("BORROWER").orElseGet(() -> roleRepository.save(Role.builder().name("BORROWER").build()));
-        Login disabledLogin = Login.builder()
-                .username("used-token-user")
-                .passwordHash("$2a$10$ZcX.L1QKtn4tMs.eCqQIBORsiWiv7bE3Exh3hnjeWWUHvmsCa3KRe")
-                .enabled(false)
-                .roles(Set.of(borrower))
-                .build();
-        disabledLogin = loginsRepository.save(disabledLogin);
-
-        String[] tokenAndHash = generateActivationToken(disabledLogin.getId());
-        String plaintextToken = tokenAndHash[0];
-        String storedHash = tokenAndHash[1];
-
-        activationTokenRepository.markAsUsed(activationTokenRepository.findByTokenHash(storedHash).orElseThrow().getId());
-        entityManager.flush();
-        entityManager.clear();
-
-        Map<String, String> body = new HashMap<>();
-        body.put("token", plaintextToken);
-
-        mockMvc.perform(post("/api/auth/activate")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(body)))
-                .andExpect(status().isBadRequest());
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value("Account activated successfully"))
+                .andExpect(jsonPath("$.email").isEmpty());
     }
 
     @Test
@@ -508,11 +440,133 @@ class AuthControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isOk());
 
-         entityManager.flush();
+        entityManager.flush();
         entityManager.clear();
 
         ActivationToken token = activationTokenRepository.findByTokenHash(tokenHash).orElseThrow();
         assertNotNull(token.getUsedAt());
+    }
+
+    @Test
+    @DisplayName("POST_activate_expired_token_returns_410_with_email")
+    void POST_activate_expired_token_returns_410_with_email() throws Exception {
+        Role borrower = roleRepository.findByName("BORROWER").orElseGet(() -> roleRepository.save(Role.builder().name("BORROWER").build()));
+        Login disabledLogin = Login.builder()
+                .username("expired-token-user@example.com")
+                .passwordHash("$2a$10$ZcX.L1QKtn4tMs.eCqQIBORsiWiv7bE3Exh3hnjeWWUHvmsCa3KRe")
+                .enabled(false)
+                .roles(Set.of(borrower))
+                .build();
+        disabledLogin = loginsRepository.save(disabledLogin);
+
+        String[] tokenAndHash = generateExpiredActivationToken(disabledLogin.getId());
+        String plaintextToken = tokenAndHash[0];
+
+        Map<String, String> body = new HashMap<>();
+        body.put("token", plaintextToken);
+
+        mockMvc.perform(post("/api/auth/activate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isGone())
+                .andExpect(jsonPath("$.status").value("TOKEN_EXPIRED"))
+                .andExpect(jsonPath("$.email").value("expired-token-user@example.com"));
+    }
+
+    @Test
+    @DisplayName("POST_activate_expired_token_without_user_returns_410_without_email")
+    void POST_activate_expired_token_without_user_returns_410_without_email() throws Exception {
+        // Create expired token but with a non-existent loginId
+        String plaintextToken = "expiredTokenForTestNoUser1234567890abcdefghijklmn==";
+
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(plaintextToken.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder(64);
+            for (byte b : hashBytes) {
+                hexString.append(String.format("%02x", b));
+            }
+            String tokenHash = hexString.toString();
+
+            ActivationToken expiredToken = ActivationToken.builder()
+                    .loginId(99999L)
+                    .type("ACTIVATION")
+                    .tokenHash(tokenHash)
+                    .expiresAt(LocalDateTime.now().minusHours(1))
+                    .usedAt(null)
+                    .createdAt(LocalDateTime.now().minusHours(2))
+                    .build();
+            activationTokenRepository.save(expiredToken);
+
+            Map<String, String> body = new HashMap<>();
+            body.put("token", plaintextToken);
+
+            mockMvc.perform(post("/api/auth/activate")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(body)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.status").value("TOKEN_INVALID"))
+                    .andExpect(jsonPath("$.email").isEmpty());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate expired token", e);
+        }
+    }
+
+    @Test
+    @DisplayName("POST_activate_invalid_token_returns_400_without_email")
+    void POST_activate_invalid_token_returns_400_without_email() throws Exception {
+        String password = "passWorD123!";
+        String confirmPassword = "passWorD123!";
+
+        Map<String, String> body = new HashMap<>();
+        body.put("token", "nonexistent-token-value-xyz");
+        body.put("password", password);
+        body.put("confirmPassword", confirmPassword);
+
+        mockMvc.perform(post("/api/auth/activate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("TOKEN_INVALID"))
+                .andExpect(jsonPath("$.email").isEmpty());
+    }
+
+    @Test
+    @DisplayName("POST_activate_already_activated_returns_200_with_ALREADY_ACTIVATED")
+    void POST_activate_already_activated_returns_200_with_ALREADY_ACTIVATED() throws Exception {
+        Role borrower = roleRepository.findByName("BORROWER").orElseGet(() -> roleRepository.save(Role.builder().name("BORROWER").build()));
+        Login disabledLogin = Login.builder()
+                .username("used-token-user")
+                .passwordHash("$2a$10$ZcX.L1QKtn4tMs.eCqQIBORsiWiv7bE3Exh3hnjeWWUHvmsCa3KRe")
+                .enabled(false)
+                .roles(Set.of(borrower))
+                .build();
+        disabledLogin = loginsRepository.save(disabledLogin);
+
+        String[] tokenAndHash = generateActivationToken(disabledLogin.getId());
+        String plaintextToken = tokenAndHash[0];
+        String storedHash = tokenAndHash[1];
+
+        activationTokenRepository.markAsUsed(activationTokenRepository.findByTokenHash(storedHash).orElseThrow().getId());
+        entityManager.flush();
+        entityManager.clear();
+
+        // Re-enable the login to simulate already-activated account
+        Login updatedLogin = loginsRepository.findById(disabledLogin.getId()).orElseThrow();
+        updatedLogin.setEnabled(true);
+        loginsRepository.save(updatedLogin);
+        entityManager.flush();
+        entityManager.clear();
+
+        Map<String, String> body = new HashMap<>();
+        body.put("token", plaintextToken);
+
+        mockMvc.perform(post("/api/auth/activate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ALREADY_ACTIVATED"))
+                .andExpect(jsonPath("$.email").isEmpty());
     }
 
     @Test
@@ -522,6 +576,53 @@ class AuthControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("POST_activate_no_user_data_leaked_for_invalid_token")
+    void POST_activate_no_user_data_leaked_for_invalid_token() throws Exception {
+        String password = "passWorD123!";
+        String confirmPassword = "passWorD123!";
+
+        Map<String, String> body = new HashMap<>();
+        body.put("token", "nonexistent-token-value-xyz");
+        body.put("password", password);
+        body.put("confirmPassword", confirmPassword);
+
+        mockMvc.perform(post("/api/auth/activate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("TOKEN_INVALID"))
+                .andExpect(jsonPath("$.email").isEmpty())
+                .andExpect(jsonPath("$.message").isEmpty());
+    }
+
+    @Test
+    @DisplayName("POST_activate_mismatched_passwords_returns_422")
+    void POST_activate_mismatched_passwords_returns_422() throws Exception {
+        Role borrower = roleRepository.findByName("BORROWER").orElseGet(() -> roleRepository.save(Role.builder().name("BORROWER").build()));
+        Login disabledLogin = Login.builder()
+                .username("password-mismatch-user")
+                .passwordHash("$2a$10$ZcX.L1QKtn4tMs.eCqQIBORsiWiv7bE3Exh3hnjeWWUHvmsCa3KRe")
+                .enabled(false)
+                .roles(Set.of(borrower))
+                .build();
+        disabledLogin = loginsRepository.save(disabledLogin);
+
+        String[] tokenAndHash = generateActivationToken(disabledLogin.getId());
+        String plaintextToken = tokenAndHash[0];
+
+        Map<String, String> body = new HashMap<>();
+        body.put("token", plaintextToken);
+        body.put("password", "password1");
+        body.put("confirmPassword", "password2");
+
+        mockMvc.perform(post("/api/auth/activate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.errorType").value("PASSWORDS_MISMATCH"));
     }
 
     private String[] generateActivationToken(Long loginId) {

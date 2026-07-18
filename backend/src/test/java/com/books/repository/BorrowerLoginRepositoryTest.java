@@ -41,7 +41,7 @@ class BorrowerLoginRepositoryTest {
         loginsRepository.flush();
 
         Borrower borrower = Borrower.builder()
-                .login_id(savedLogin.getId())
+                .loginId(savedLogin.getId())
                 .firstname("John")
                 .lastname("Doe")
                 .email("john@example.com")
@@ -50,7 +50,7 @@ class BorrowerLoginRepositoryTest {
         borrowerRepository.flush();
 
         assertNotNull(savedBorrower.getId());
-        assertEquals(savedLogin.getId(), savedBorrower.getLogin_id());
+        assertEquals(savedLogin.getId(), savedBorrower.getLoginId());
     }
 
     @Test
@@ -60,7 +60,7 @@ class BorrowerLoginRepositoryTest {
         loginsRepository.flush();
 
         Borrower borrower = Borrower.builder()
-                .login_id(savedLogin.getId())
+                .loginId(savedLogin.getId())
                 .firstname("Jane")
                 .lastname("Smith")
                 .build();
@@ -68,7 +68,7 @@ class BorrowerLoginRepositoryTest {
         borrowerRepository.flush();
 
         Borrower reloaded = borrowerRepository.findById(savedBorrower.getId()).orElseThrow();
-        assertEquals(savedLogin.getId(), reloaded.getLogin_id());
+        assertEquals(savedLogin.getId(), reloaded.getLoginId());
         assertTrue(loginsRepository.findById(savedLogin.getId()).isPresent());
     }
 
@@ -79,7 +79,7 @@ class BorrowerLoginRepositoryTest {
         loginsRepository.flush();
 
         Borrower borrower = Borrower.builder()
-                .login_id(savedLogin.getId())
+                .loginId(savedLogin.getId())
                 .firstname("Borrower")
                 .lastname("Test")
                 .build();

@@ -18,7 +18,8 @@ public class Borrower {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long login_id;
+    @Column(name = "login_id")
+    private Long loginId;
 
     private String firstname;
 

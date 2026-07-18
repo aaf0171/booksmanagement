@@ -1,14 +1,9 @@
 package com.books.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.books.enums.ActivationStatus;
 
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class ActivationResponseDTO {
-    private String message;
-}
+public record ActivationResponseDTO(
+    ActivationStatus status,
+    String message,
+    String email
+) {}

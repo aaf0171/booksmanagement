@@ -1,12 +1,12 @@
 package com.books.controller;
 
-import com.books.exception.ActivationTokenException;
 import com.books.exception.DocumentInUseException;
 import com.books.exception.DocumentNotFoundException;
 import com.books.exception.ItemInUseException;
 import com.books.exception.ItemNotFoundException;
 import com.books.exception.LoginConflictException;
 import com.books.exception.LoginValidationException;
+import com.books.exception.PasswordMismatchException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -28,6 +28,17 @@ public class GlobalExceptionHandler {
         body.put("error", "Unauthorized");
         body.put("message", ex.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+    }
+
+    @ExceptionHandler(PasswordMismatchException.class)
+    public ResponseEntity<Map<String, Object>> handlePasswordMismatch(PasswordMismatchException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("status", 422);
+        body.put("error", "Unprocessable Entity");
+        body.put("message", ex.getMessage());
+        body.put("errorType", "PASSWORDS_MISMATCH");
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(body);
     }
 
     @ExceptionHandler(com.books.exception.LoginNotFoundException.class)
@@ -124,13 +135,4 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(body);
     }
 
-    @ExceptionHandler(ActivationTokenException.class)
-    public ResponseEntity<Map<String, Object>> handleActivationToken(ActivationTokenException ex) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", LocalDateTime.now().toString());
-        body.put("status", 400);
-        body.put("error", "Bad Request");
-        body.put("message", ex.getMessage());
-        return ResponseEntity.badRequest().body(body);
-    }
-}
+ }
